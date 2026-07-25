@@ -4,6 +4,8 @@ import { GWASCatalogService } from '../evidence/gwas-catalog.service.js';
 import { PubMedService } from '../evidence/pubmed.service.js';
 import { EvidenceFilterEngine } from '../evidence/evidence-filter.engine.js';
 
+import { SampleSet } from '../../types.js';
+
 const variantService = new VariantService();
 const gwasService = new GWASCatalogService();
 const pubmedService = new PubMedService();
@@ -72,7 +74,7 @@ export class AnalysisTools {
   })
   @Widget('risk-report')
   async runFullAnalysis(input: any, ctx: ExecutionContext) {
-    const sampleSetKey = input.sampleSet as string;
+    const sampleSetKey = input.sampleSet as SampleSet;
     const userAncestry: string | null = input.userAncestry ?? null;
 
     // 1. Parse variants
