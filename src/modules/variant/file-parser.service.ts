@@ -15,7 +15,12 @@ export function parseAncestryFile(fileContent: string, disease: string): ParsedV
     (DISEASE_RSIDS[disease] ?? []).map(r => r.toLowerCase())
   );
 
-  const lines = fileContent.split(/\r?\n/);
+  // Normalize escape sequences — MCP Inspector sends literal \t and \n as two chars
+  const normalized = fileContent
+    .replace(/\\t/g, '\t')
+    .replace(/\\n/g, '\n');
+
+  const lines = normalized.split(/\r?\n/);
   const results: ParsedVariant[] = [];
   let headerParsed = false;
   let rsidCol = 0;

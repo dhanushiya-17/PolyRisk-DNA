@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { GWASCatalogService } from '../evidence/gwas-catalog.service.js';
 import { PubMedService } from '../evidence/pubmed.service.js';
 import { EvidenceFilterEngine } from '../evidence/evidence-filter.engine.js';
@@ -89,13 +89,16 @@ export interface AgentAnalysisResult {
 }
 
 export class AgentService {
-  private client: Anthropic;
+  private client: OpenAI;
   private gwasService: GWASCatalogService;
   private pubmedService: PubMedService;
   private filterEngine: EvidenceFilterEngine;
 
   constructor() {
-    this.client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    this.client = new OpenAI({
+      apiKey: process.env.GROQ_API_KEY,
+      baseURL: 'https://api.groq.com/openai/v1',
+    });
     this.gwasService = new GWASCatalogService();
     this.pubmedService = new PubMedService();
     this.filterEngine = new EvidenceFilterEngine();
@@ -110,185 +113,119 @@ export class AgentService {
     const diseaseName = DISEASE_LABELS[disease] ?? disease;
     const variantList = parsedVariants.map(v => `${v.rsid} (genotype: ${v.genotype})`).join(', ');
 
-    const messages: any[] = [{
-      role: 'user',
-      content: `Analyze these genetic variants for ${diseaseName} risk:\n\n${variantList}\n\nUser ancestry: ${userAncestry || 'not specified'}\n\nAnalyze each variant, evaluate the evidence, and write a personalized narrative.`,
-    }];
+    const messages: OpenAI.ChatCompletionMessageParam[] = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content: `Analyze these genetic variants for ${diseaseName} risk:\n\n${variantList}\n\nUser ancestry: ${userAncestry || 'not specified'}\n\nAnalyze each variant, evaluate the evidence, and write a personalized narrative.`,
+      },
+    ];
 
-    const tools: Anthropic.Tool[] = [
+    const tools: OpenAI.ChatCompletionTool[] = [
       {
-        name: 'fetch_gwas_for_variant',
-        description: 'Fetch published GWAS associations for a single rsID from the NHGRI-EBI GWAS Catalog. Returns effect sizes, p-values, sample sizes, and ancestry.',
-        input_schema: {
-          type: 'object' as const,
-          properties: {
-            rsid: { type: 'string', description: 'The rsID to look up (e.g. rs7903146)' },
+        type: 'function',
+        function: {
+          name: 'fetch_gwas_for_variant',
+          description: 'Fetch published GWAS associations for a single rsID from the NHGRI-EBI GWAS Catalog. Returns effect sizes, p-values, sample sizes, and ancestry.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rsid: { type: 'string', description: 'The rsID to look up (e.g. rs7903146)' },
+            },
+            required: ['rsid'],
           },
-          required: ['rsid'],
         },
       },
       {
-        name: 'evaluate_evidence_quality',
-        description: 'Applies evidence quality criteria (p<5e-8, n≥1000, valid effect size, ancestry, superseded check) to a list of GWAS associations. Returns include/exclude decisions with specific reasons.',
-        input_schema: {
-          type: 'object' as const,
-          properties: {
-            associations: {
-              type: 'array',
-              items: { type: 'object' },
-              description: 'GWAS associations to evaluate',
+        type: 'function',
+        function: {
+          name: 'evaluate_evidence_quality',
+          description: 'Applies evidence quality criteria (p<5e-8, n≥1000, valid effect size, ancestry, superseded check) to a list of GWAS associations. Returns include/exclude decisions with specific reasons.',
+          parameters: {
+            type: 'object',
+            properties: {
+              associations: {
+                type: 'array',
+                items: { type: 'object' },
+                description: 'GWAS associations to evaluate',
+              },
             },
+            required: ['associations'],
           },
-          required: ['associations'],
         },
       },
       {
-        name: 'get_pubmed_citations',
-        description: 'Retrieve real citation details (title, authors, journal, year) from NCBI PubMed.',
-        input_schema: {
-          type: 'object' as const,
-          properties: {
-            pubmedIds: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'PubMed IDs to retrieve',
+        type: 'function',
+        function: {
+          name: 'get_pubmed_citations',
+          description: 'Retrieve real citation details (title, authors, journal, year) from NCBI PubMed.',
+          parameters: {
+            type: 'object',
+            properties: {
+              pubmedIds: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'PubMed IDs to retrieve',
+              },
             },
+            required: ['pubmedIds'],
           },
-          required: ['pubmedIds'],
         },
       },
     ];
 
     const agentSteps: AgentStep[] = [];
-    let allAssociations: any[] = [];
     let filterDecisions: any[] = [];
     let citations: any[] = [];
 
     // Agentic loop
     for (let iter = 0; iter < 25; iter++) {
-      const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-5',
+      const response = await this.client.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 8192,
-        system: SYSTEM_PROMPT,
-        tools,
         messages,
-      } as any);
+        tools,
+        tool_choice: 'auto',
+      });
 
-      // Capture text reasoning
-      for (const block of response.content as any[]) {
-        if (block.type === 'text' && block.text?.trim()) {
-          agentSteps.push({ type: 'thinking', text: block.text });
-        }
+      const choice = response.choices[0];
+      const msg = choice.message;
+
+      // Add assistant message to history
+      messages.push(msg);
+
+      // Capture any text content
+      if (msg.content?.trim()) {
+        agentSteps.push({ type: 'thinking', text: msg.content });
       }
 
-      if (response.stop_reason === 'end_turn') {
-        const narrative = (response.content as any[])
-          .filter((b: any) => b.type === 'text')
-          .map((b: any) => b.text)
-          .join('\n\n');
-
-        // Build PRS with real genotype allele counts
-        const genotypeMap = Object.fromEntries(
-          parsedVariants.map(v => [v.rsid.toLowerCase(), v.genotype])
-        );
-        const included = filterDecisions.filter((d: any) => d.decision === 'included');
-        const contributions: any[] = [];
-        let totalScore = 0;
-
-        for (const d of included as any[]) {
-          const genotype = genotypeMap[d.rsid?.toLowerCase()] ?? '';
-          const riskAlleleCount = genotype
-            ? countRiskAlleles(genotype, d.riskAllele ?? '')
-            : 1;
-
-          let effectSize: number;
-          let effectType: string;
-          if (d.effectType === 'OR' && d.effectSize > 0) {
-            effectSize = Math.log(d.effectSize);
-            effectType = 'OR_log';
-          } else if (d.effectType === 'beta') {
-            effectSize = d.effectSize;
-            effectType = 'beta';
-          } else continue;
-
-          const contribution = effectSize * riskAlleleCount;
-          totalScore += contribution;
-          contributions.push({
-            rsid: d.rsid, riskAllele: d.riskAllele ?? '',
-            genotype: genotype || 'unknown',
-            genotypeAlleleCount: riskAlleleCount,
-            effectSize, effectType, contribution,
-            studyAccession: d.studyAccession ?? '',
-            pubmedId: d.pubmedId ?? '',
-          });
-        }
-
-        const prsResult = {
-          disease,
-          totalScore: Math.round(totalScore * 10000) / 10000,
-          contributions,
-          variantsIncluded: contributions.length,
-          genotypeAssumed: false,
-        };
-
-        const filterResult = {
-          disease,
-          total: filterDecisions.length,
-          includedCount: included.length,
-          excludedCount: filterDecisions.filter((d: any) => d.decision === 'excluded').length,
-          ancestryNote: userAncestry ? `Ancestry context applied: ${userAncestry}` : null,
-          allDecisions: filterDecisions,
-        };
-
-        // Risk interpretation
-        const params = PRS_POP_PARAMS[disease] ?? { mean: 0.6, sd: 0.3 };
-        const zScore = params.sd > 0 ? (prsResult.totalScore - params.mean) / params.sd : 0;
-        const tier = zScore < -0.5 ? 'low' : zScore > 0.5 ? 'high' : 'moderate';
-        const percentileApprox = Math.round((0.5 + 0.5 * Math.tanh(zScore * 0.8)) * 100);
-
-        const riskInterpretation = {
-          disease, tier,
-          prsScore: prsResult.totalScore,
-          zScore: Math.round(zScore * 100) / 100,
-          percentileApprox,
-          confidenceLevel: contributions.length >= 4 ? 'high' : contributions.length >= 2 ? 'moderate' : 'low',
-          confidenceReason: `${contributions.length} variants analyzed with real genotype data from your ancestry file.`,
-          description: narrative.slice(0, 300) + '…',
-        };
-
-        return {
+      if (choice.finish_reason === 'stop' || (choice.finish_reason as string) === 'end_turn') {
+        const narrative = msg.content ?? '';
+        return this.buildResult(
           disease, diseaseName, narrative, agentSteps,
-          riskInterpretation, prsResult, filterResult, citations,
-          lifestyleContext: {
-            disease,
-            factors: LIFESTYLE[disease] ?? [],
-            source: 'Published clinical guidelines and trial evidence.',
-          },
-          disclaimer: DISCLAIMER,
-          generatedAt: new Date().toISOString(),
-          genotypeData: true,
-        };
+          parsedVariants, filterDecisions, citations, userAncestry
+        );
       }
 
-      if (response.stop_reason === 'tool_use') {
-        messages.push({ role: 'assistant', content: response.content });
-        const toolResults: any[] = [];
+      if (choice.finish_reason === 'tool_calls' && msg.tool_calls?.length) {
+        const toolResults: OpenAI.ChatCompletionToolMessageParam[] = [];
 
-        for (const block of response.content as any[]) {
-          if (block.type !== 'tool_use') continue;
-          agentSteps.push({ type: 'tool_call', tool: block.name, input: block.input });
+        for (const toolCall of msg.tool_calls) {
+          const { name, arguments: argsStr } = (toolCall as any).function;
+          let args: any;
+          try { args = JSON.parse(argsStr); } catch { args = {}; }
+
+          agentSteps.push({ type: 'tool_call', tool: name, input: args });
 
           let result: any;
           try {
-            if (block.name === 'fetch_gwas_for_variant') {
+            if (name === 'fetch_gwas_for_variant') {
               const assocs = await this.gwasService.getAssociationsForVariant(
-                block.input.rsid, disease as any
+                args.rsid, disease as any
               );
-              allAssociations.push(...assocs);
-              result = { rsid: block.input.rsid, count: assocs.length, associations: assocs };
-            } else if (block.name === 'evaluate_evidence_quality') {
-              const decisions = this.filterEngine.filter(block.input.associations, userAncestry);
-              // Merge — avoid duplicates by rsid, keep best
+              result = { rsid: args.rsid, count: assocs.length, associations: assocs };
+            } else if (name === 'evaluate_evidence_quality') {
+              const decisions = this.filterEngine.filter(args.associations, userAncestry);
               const seen = new Set(filterDecisions.map((d: any) => d.rsid));
               for (const d of decisions as any[]) {
                 if (!seen.has(d.rsid)) { filterDecisions.push(d); seen.add(d.rsid); }
@@ -299,28 +236,106 @@ export class AgentService {
                 excluded: (decisions as any[]).filter((d: any) => d.decision === 'excluded').length,
                 decisions,
               };
-            } else if (block.name === 'get_pubmed_citations') {
-              citations = await this.pubmedService.getCitations(block.input.pubmedIds);
+            } else if (name === 'get_pubmed_citations') {
+              citations = await this.pubmedService.getCitations(args.pubmedIds);
               result = { citations };
             } else {
-              result = { error: 'Unknown tool: ' + block.name };
+              result = { error: 'Unknown tool: ' + name };
             }
           } catch (e: any) {
             result = { error: e.message };
           }
 
-          agentSteps.push({ type: 'tool_result', tool: block.name, result });
+          agentSteps.push({ type: 'tool_result', tool: name, result });
           toolResults.push({
-            type: 'tool_result',
-            tool_use_id: block.id,
+            role: 'tool',
+            tool_call_id: toolCall.id,
             content: JSON.stringify(result),
           });
         }
 
-        messages.push({ role: 'user', content: toolResults });
+        messages.push(...toolResults);
       }
     }
 
     throw new Error('Agent exceeded maximum iterations without completing analysis.');
+  }
+
+  private buildResult(
+    disease: string, diseaseName: string, narrative: string,
+    agentSteps: AgentStep[], parsedVariants: ParsedVariant[],
+    filterDecisions: any[], citations: any[], userAncestry: string | null
+  ): AgentAnalysisResult {
+    const genotypeMap = Object.fromEntries(
+      parsedVariants.map(v => [v.rsid.toLowerCase(), v.genotype])
+    );
+    const included = filterDecisions.filter((d: any) => d.decision === 'included');
+    const contributions: any[] = [];
+    let totalScore = 0;
+
+    for (const d of included as any[]) {
+      const genotype = genotypeMap[d.rsid?.toLowerCase()] ?? '';
+      const riskAlleleCount = genotype ? countRiskAlleles(genotype, d.riskAllele ?? '') : 1;
+
+      let effectSize: number;
+      let effectType: string;
+      if (d.effectType === 'OR' && d.effectSize > 0) {
+        effectSize = Math.log(d.effectSize);
+        effectType = 'OR_log';
+      } else if (d.effectType === 'beta') {
+        effectSize = d.effectSize;
+        effectType = 'beta';
+      } else continue;
+
+      const contribution = effectSize * riskAlleleCount;
+      totalScore += contribution;
+      contributions.push({
+        rsid: d.rsid, riskAllele: d.riskAllele ?? '',
+        genotype: genotype || 'unknown',
+        genotypeAlleleCount: riskAlleleCount,
+        effectSize, effectType, contribution,
+        studyAccession: d.studyAccession ?? '',
+        pubmedId: d.pubmedId ?? '',
+      });
+    }
+
+    const prsResult = {
+      disease, totalScore: Math.round(totalScore * 10000) / 10000,
+      contributions, variantsIncluded: contributions.length, genotypeAssumed: false,
+    };
+
+    const filterResult = {
+      disease, total: filterDecisions.length,
+      includedCount: included.length,
+      excludedCount: filterDecisions.filter((d: any) => d.decision === 'excluded').length,
+      ancestryNote: userAncestry ? `Ancestry context applied: ${userAncestry}` : null,
+      allDecisions: filterDecisions,
+    };
+
+    const params = PRS_POP_PARAMS[disease] ?? { mean: 0.6, sd: 0.3 };
+    const zScore = params.sd > 0 ? (prsResult.totalScore - params.mean) / params.sd : 0;
+    const tier = zScore < -0.5 ? 'low' : zScore > 0.5 ? 'high' : 'moderate';
+    const percentileApprox = Math.round((0.5 + 0.5 * Math.tanh(zScore * 0.8)) * 100);
+
+    const riskInterpretation = {
+      disease, tier, prsScore: prsResult.totalScore,
+      zScore: Math.round(zScore * 100) / 100,
+      percentileApprox,
+      confidenceLevel: contributions.length >= 4 ? 'high' : contributions.length >= 2 ? 'moderate' : 'low',
+      confidenceReason: `${contributions.length} variants analyzed with real genotype data from your ancestry file.`,
+      description: narrative.slice(0, 400),
+    };
+
+    return {
+      disease, diseaseName, narrative, agentSteps,
+      riskInterpretation, prsResult, filterResult, citations,
+      lifestyleContext: {
+        disease, factors: LIFESTYLE[disease] ?? [],
+        source: 'Published clinical guidelines and trial evidence.',
+      },
+      disclaimer: DISCLAIMER,
+      generatedAt: new Date().toISOString(),
+      genotypeData: true,
+    };
   }
 }

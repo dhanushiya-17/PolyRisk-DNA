@@ -52,10 +52,17 @@ export class AgentTools {
       rsids: parsedVariants.map(v => v.rsid),
     });
 
+    if (!disease) {
+      throw new Error(
+        `The 'disease' field is required. Set it to one of: type2_diabetes, coronary_artery_disease, age_related_macular_degeneration`
+      );
+    }
+
     if (parsedVariants.length === 0) {
       throw new Error(
         `No relevant variants found for ${disease} in the uploaded file. ` +
-        `Make sure this is a 23andMe or AncestryDNA raw data export and that the file contains rsIDs relevant to ${disease}.`
+        `Make sure the file contains tab-separated rsID data with columns: rsid, chromosome, position, genotype. ` +
+        `Expected rsIDs for ${disease}: ${['type2_diabetes','coronary_artery_disease','age_related_macular_degeneration'].includes(disease) ? 'rs7903146, rs12255372, rs4402960, rs7756992, rs1111875, rs13266634 (T2D) / rs1333049, rs4977574 (CAD) / rs1061170, rs10490924 (AMD)' : 'unknown disease key'}.`
       );
     }
 
