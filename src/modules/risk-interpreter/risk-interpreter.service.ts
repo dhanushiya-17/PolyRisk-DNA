@@ -107,6 +107,8 @@ export class RiskInterpreterService {
         return `Moderate Tier for ${name}: Your score falls in the middle range of population distribution. Genetic risk is typical for the population.`;
       case 'high':
         return `High Tier for ${name}: Your score falls in the upper percentile of population distribution. Elevated genetic predisposition warrants proactive lifestyle management.`;
+      default:
+        return `Risk assessment complete for ${name}.`;
     }
   }
 }

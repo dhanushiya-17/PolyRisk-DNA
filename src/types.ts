@@ -1,5 +1,72 @@
 export type Disease = 'type2_diabetes' | 'coronary_artery_disease' | 'age_related_macular_degeneration';
+export type SampleSet = 'T2D_SAMPLE' | 'CAD_SAMPLE' | 'AMD_SAMPLE';
+export type RiskTier = 'low' | 'moderate' | 'high';
 export type EffectType = 'OR' | 'beta' | 'unknown';
+export type FilterDecisionType = 'included' | 'excluded';
+
+export interface ValidatedVariant {
+  rsid: string;
+  isValid: boolean;
+  normalizedRsid: string;
+  error?: string;
+}
+
+export interface PRSContribution {
+  rsid: string;
+  riskAllele: string;
+  genotypeAlleleCount: number;
+  effectSize: number;
+  effectType: 'OR_log' | 'beta';
+  contribution: number;
+  studyAccession: string | null;
+  pubmedId: string | null;
+}
+
+export interface PRSResult {
+  disease: Disease;
+  totalScore: number;
+  contributions: PRSContribution[];
+  variantsIncluded: number;
+  genotypeAssumed: boolean;
+}
+
+export interface Citation {
+  pubmedId: string;
+  title: string;
+  authors: string;
+  journal: string;
+  year: string;
+  url: string;
+}
+
+export interface RiskInterpretation {
+  disease: Disease;
+  tier: RiskTier;
+  prsScore: number;
+  zScore: number;
+  percentileApprox: number;
+  confidenceLevel: 'low' | 'moderate' | 'high';
+  confidenceReason: string;
+  description: string;
+}
+
+export interface LifestyleContext {
+  disease: Disease;
+  factors: Array<{ category: string; description: string }>;
+  source: string;
+}
+
+export interface PolyRiskReport {
+  disease: Disease;
+  diseaseName: string;
+  riskInterpretation: RiskInterpretation;
+  prsResult: PRSResult;
+  filterResult: FilterEvidenceResult;
+  citations: Citation[];
+  lifestyleContext: LifestyleContext;
+  disclaimer: string;
+  generatedAt: string;
+}
 
 /** Matches the exact camelCase shape produced by GWASCatalogService. */
 export interface GWASAssociation {
@@ -43,6 +110,6 @@ export interface FilterEvidenceResult {
   total: number;
   includedCount: number;
   excludedCount: number;
-  ancestryNote: string;
+  ancestryNote: string | null;
   allDecisions: FilterDecision[];
 }
