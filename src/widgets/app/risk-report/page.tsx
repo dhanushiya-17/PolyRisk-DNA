@@ -10,6 +10,14 @@ interface PRSContribution {
   effectSize: number; effectType: string; contribution: number;
   studyAccession: string; pubmedId: string;
 }
+interface AgentStep {
+  type: 'thinking' | 'tool_call' | 'tool_result';
+  text?: string;
+  tool?: string;
+  input?: any;
+  result?: any;
+}
+
 interface PolyRiskReport {
   disease: string; diseaseName: string;
   riskInterpretation: {
@@ -22,6 +30,10 @@ interface PolyRiskReport {
   citations: Citation[];
   lifestyleContext: { factors: Array<{ category: string; description: string }>; source: string; };
   disclaimer: string; generatedAt: string;
+  // Extended fields from analyze_genetic_file
+  narrative?: string;
+  agentSteps?: AgentStep[];
+  genotypeData?: boolean;
 }
 
 const TIER = {
@@ -81,7 +93,7 @@ function Gauge({ zScore, tier, isDark }: { zScore: number; tier: string; isDark:
   );
 }
 
-type TabId = 'summary' | 'variants' | 'citations' | 'lifestyle';
+type TabId = 'summary' | 'variants' | 'citations' | 'lifestyle' | 'narrative' | 'agent';
 
 export default function RiskReportWidget() {
   const theme = useTheme();
@@ -98,6 +110,9 @@ export default function RiskReportWidget() {
   const muted   = isDark ? '#607FA0' : '#596880';
   const border  = isDark ? '#182840' : '#CDD8EE';
   const teal    = isDark ? '#0DD4B8' : '#09B8A6';
+
+  const hasNarrative = !!data?.narrative;
+  const hasAgentSteps = data?.agentSteps && data.agentSteps.length > 0;
 
   if (!data) {
     return (
@@ -118,9 +133,11 @@ export default function RiskReportWidget() {
   const tab = state?.tab ?? 'summary';
   const tabs: { id: TabId; label: string }[] = [
     { id: 'summary',   label: 'Summary' },
+    ...(hasNarrative ? [{ id: 'narrative' as TabId, label: '✦ Narrative' }] : []),
     { id: 'variants',  label: `Variants (${prsResult.variantsIncluded})` },
     { id: 'citations', label: `Citations (${citations.length})` },
     { id: 'lifestyle', label: 'Lifestyle' },
+    ...(hasAgentSteps ? [{ id: 'agent' as TabId, label: `Agent Trace` }] : []),
   ];
 
   return (
@@ -157,6 +174,21 @@ export default function RiskReportWidget() {
             {t.label}
           </span>
         </div>
+
+        {/* Real genotype badge */}
+        {data.genotypeData && (
+          <div style={{
+            marginTop: 8, textAlign: 'center',
+          }}>
+            <span style={{
+              display: 'inline-block', padding: '3px 11px', borderRadius: 20, fontSize: 11,
+              background: isDark ? '#052E1F' : '#DCFCE7',
+              color: isDark ? '#4ADE80' : '#166534', fontWeight: 600,
+            }}>
+              ✓ Real genotype data used
+            </span>
+          </div>
+        )}
 
         {/* PRS score + percentile */}
         <div style={{
@@ -215,6 +247,26 @@ export default function RiskReportWidget() {
         <p style={{ fontSize: 13, lineHeight: 1.65, color: text, margin: 0 }}>
           {ri.description}
         </p>
+      )}
+
+      {/* Tab: Narrative (AI-written personalized analysis) */}
+      {tab === 'narrative' && hasNarrative && (
+        <div>
+          <div style={{
+            fontFamily: 'ui-monospace, monospace', fontSize: 10, color: muted,
+            letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 12,
+          }}>
+            AI-written personalized analysis · Powered by Claude
+          </div>
+          {(data.narrative ?? '').split(/\n\n+/).map((para, i) => (
+            <p key={i} style={{
+              fontSize: 13, lineHeight: 1.7, color: text,
+              margin: '0 0 12px',
+            }}>
+              {para.trim()}
+            </p>
+          ))}
+        </div>
       )}
 
       {/* Tab: Variants */}
@@ -325,6 +377,52 @@ export default function RiskReportWidget() {
               Source: {lifestyleContext.source}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tab: Agent Trace */}
+      {tab === 'agent' && hasAgentSteps && (
+        <div>
+          <div style={{
+            fontFamily: 'ui-monospace, monospace', fontSize: 10, color: muted,
+            letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 12,
+          }}>
+            Agent reasoning trace · {data.agentSteps!.length} steps
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {data.agentSteps!.map((step, i) => (
+              <div key={i} style={{
+                background: surface, border: `1px solid ${border}`,
+                borderLeft: `3px solid ${
+                  step.type === 'thinking' ? teal
+                  : step.type === 'tool_call' ? '#D97706'
+                  : '#059669'
+                }`,
+                borderRadius: 8, padding: '9px 12px',
+              }}>
+                <div style={{
+                  fontFamily: 'ui-monospace, monospace', fontSize: 10, fontWeight: 700,
+                  letterSpacing: '.06em', textTransform: 'uppercase',
+                  color: step.type === 'thinking' ? teal : step.type === 'tool_call' ? '#D97706' : '#059669',
+                  marginBottom: 4,
+                }}>
+                  {step.type === 'thinking' ? '◆ Thinking'
+                    : step.type === 'tool_call' ? `⚙ Tool: ${step.tool}`
+                    : `✓ Result: ${step.tool}`}
+                </div>
+                {step.text && (
+                  <div style={{ fontSize: 11, color: muted, lineHeight: 1.55 }}>
+                    {step.text.length > 200 ? step.text.slice(0, 200) + '…' : step.text}
+                  </div>
+                )}
+                {step.type === 'tool_call' && step.input && (
+                  <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10, color: muted, marginTop: 4 }}>
+                    input: {JSON.stringify(step.input).slice(0, 120)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

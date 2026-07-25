@@ -64,7 +64,7 @@ const T2D_DEMO_FALLBACK: Record<string, GWASAssociation> = {
 
 const CAD_DEMO_FALLBACK: Record<string, GWASAssociation> = {
   rs1333049: {
-    rsid: 'rs1333049', riskAllele: 'C', pvalue: 1.4e-7, pvalueMantissa: 1.4, pvalueExponent: -7,
+    rsid: 'rs1333049', riskAllele: 'C', pvalue: 3.0e-19, pvalueMantissa: 3.0, pvalueExponent: -19,
     orPerCopyNum: 1.29, betaNum: null, betaUnit: null, betaDirection: null, riskFrequency: 0.47,
     studyAccession: 'GCST000122', pubmedId: '17478679', traitName: 'Coronary artery disease',
     initialSampleSize: '875 European ancestry cases, 1,644 European ancestry controls',

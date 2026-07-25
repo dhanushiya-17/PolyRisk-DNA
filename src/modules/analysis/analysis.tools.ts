@@ -77,7 +77,7 @@ export class AnalysisTools {
 
     // 1. Parse variants
     ctx.logger.info('run_full_analysis: expanding sample set', { sampleSet: sampleSetKey });
-    const sample = variantService.expandSampleSet(sampleSetKey);
+    const sample = variantService.expandSampleSet(sampleSetKey as import('../../types.js').SampleSet);
     const variants = variantService.validateRsids(sample.rsids);
     const validVariants = variants.filter((v: any) => v.isValid);
     const disease = sample.disease as string;
