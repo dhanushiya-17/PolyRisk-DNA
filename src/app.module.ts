@@ -3,6 +3,7 @@ import { VariantModule } from './modules/variant/variant.module.js';
 import { EvidenceModule } from './modules/evidence/evidence.module.js';
 import { ScoringModule } from './modules/scoring/scoring.module.js';
 import { ReportModule } from './modules/report/report.module.js';
+import { AnalysisModule } from './modules/analysis/analysis.module.js';
 import { SystemHealthCheck } from './health/system.health.js';
 
 @McpApp({
@@ -24,6 +25,7 @@ import { SystemHealthCheck } from './health/system.health.js';
     EvidenceModule,
     ScoringModule,
     ReportModule,
+    AnalysisModule,
   ],
   providers: [
     SystemHealthCheck,
