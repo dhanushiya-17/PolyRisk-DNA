@@ -71,20 +71,18 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 .btn-back{background:var(--surface2);color:var(--ink2);padding:8px 14px;border-radius:100px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:background .15s;font-family:var(--font)}
 .btn-back:hover{background:var(--line)}
 
-/* Disease cards */
-.disease-cards{display:flex;flex-direction:column;gap:10px}
-.disease-card{display:flex;align-items:center;gap:16px;padding:16px 18px;background:var(--surface);border:2px solid var(--line);border-radius:var(--r);cursor:pointer;transition:border-color .2s,background .2s,transform .1s;-webkit-tap-highlight-color:transparent}
-.disease-card:hover{border-color:var(--teal);background:var(--teal-mid)}
-.disease-card.selected{border-color:var(--teal);background:var(--teal-lt)}
-.disease-card:active{transform:scale(.99)}
-.disease-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
-.disease-card-name{font-size:15px;font-weight:600;margin-bottom:2px}
-.disease-card-sub{font-size:12px;color:var(--ink3)}
-.disease-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;color:transparent}
-.disease-card.selected .disease-check{background:var(--teal);border-color:var(--teal);color:#fff}
+/* rsID textarea */
+.rsid-textarea{width:100%;border:1.5px solid var(--line);border-radius:var(--r);padding:14px 16px;font-family:var(--mono);font-size:13px;color:var(--ink);background:var(--surface);resize:vertical;min-height:90px;outline:none;transition:border-color .2s;line-height:1.8}
+.rsid-textarea:focus{border-color:var(--teal)}
+.rsid-textarea::placeholder{color:var(--ink3);font-family:var(--mono)}
+
+/* OR divider */
+.or-divider{display:flex;align-items:center;gap:12px;margin:16px 0}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--line)}
+.or-divider span{font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase}
 
 /* Upload */
-.upload-zone{border:2px dashed var(--line);border-radius:var(--r);padding:28px 24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative;overflow:hidden}
+.upload-zone{border:2px dashed var(--line);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative;overflow:hidden}
 .upload-zone:hover,.upload-zone.drag-over{border-color:var(--teal);background:var(--teal-lt)}
 .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .upload-file-name{font-size:14px;font-weight:600;color:var(--teal);margin-top:6px;display:none}
@@ -112,22 +110,33 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 .spinner{width:14px;height:14px;border:2px solid rgba(106,48,214,.3);border-top-color:var(--violet);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Risk display */
-.risk-display{text-align:center;padding:36px 24px 28px;background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-sm);margin-bottom:20px}
-.risk-tier-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px}
-.risk-word{font-size:clamp(48px,13vw,76px);font-weight:800;letter-spacing:-.04em;line-height:1;margin-bottom:14px}
-.risk-word.low{color:var(--low)}
-.risk-word.moderate{color:var(--mod)}
-.risk-word.high{color:var(--high)}
-.pct-bar{position:relative;height:7px;background:var(--surface2);border-radius:100px;overflow:hidden;margin:14px 0 7px}
+/* Disease result cards */
+.drc{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-sm);margin-bottom:12px;overflow:hidden}
+.drc-header{display:flex;align-items:center;gap:14px;padding:16px 18px;cursor:pointer;transition:background .15s;user-select:none}
+.drc-header:hover{background:var(--surface2)}
+.drc-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
+.drc-info{flex:1;min-width:0}
+.drc-name{font-size:15px;font-weight:650;margin-bottom:2px}
+.drc-sub{font-size:12px;color:var(--ink3)}
+.drc-tier{font-size:10px;font-weight:800;letter-spacing:.09em;padding:5px 11px;border-radius:100px;flex-shrink:0}
+.drc-tier.low{background:var(--low-lt);color:var(--low)}
+.drc-tier.moderate{background:var(--mod-lt);color:var(--mod)}
+.drc-tier.high{background:var(--high-lt);color:var(--high)}
+.drc-chevron{color:var(--ink3);flex-shrink:0;transition:transform .25s}
+.drc.open .drc-chevron{transform:rotate(180deg)}
+.drc-body{display:none;padding:0 18px 20px;border-top:1px solid var(--line)}
+.drc.open .drc-body{display:block}
+
+/* Percentile bar */
+.pct-bar{position:relative;height:7px;background:var(--surface2);border-radius:100px;overflow:hidden;margin:4px 0 5px}
 .pct-fill{height:100%;border-radius:100px;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
 .fill-low{background:var(--low)}
 .fill-moderate{background:var(--mod)}
 .fill-high{background:var(--high)}
-.pct-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--ink3)}
+.pct-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--ink3);margin-bottom:14px}
 
 /* Tabs */
-.tabs{display:flex;gap:3px;background:var(--surface2);border-radius:var(--r-sm);padding:3px;margin-bottom:18px}
+.tabs{display:flex;gap:3px;background:var(--surface2);border-radius:var(--r-sm);padding:3px;margin-bottom:14px}
 .tab{flex:1;padding:9px 6px;border:none;background:transparent;border-radius:7px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink3);cursor:pointer;transition:all .2s}
 .tab.active{background:var(--surface);color:var(--ink);box-shadow:var(--sh-sm)}
 .tab-content{display:none}
@@ -146,18 +155,18 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 
 /* Lifestyle */
 .lifestyle-list{display:flex;flex-direction:column;gap:10px}
-.lifestyle-item{display:flex;gap:13px;align-items:flex-start;padding:14px 15px;background:var(--surface);border-radius:var(--r-sm)}
+.lifestyle-item{display:flex;gap:13px;align-items:flex-start;padding:14px 15px;background:var(--bg);border-radius:var(--r-sm)}
 .ls-num{width:26px;height:26px;border-radius:50%;background:var(--teal-lt);color:var(--teal);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .ls-cat{font-size:14px;font-weight:700;margin-bottom:3px}
 .ls-desc{font-size:13px;color:var(--ink2);line-height:1.5}
 
 /* Chat */
-.chat-section{margin-top:28px;background:var(--surface);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh-sm)}
+.chat-section{margin-top:24px;background:var(--surface);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh-sm)}
 .chat-header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
 .chat-header-icon{width:32px;height:32px;background:var(--violet-lt);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .chat-header-name{font-size:14px;font-weight:700}
 .chat-header-sub{font-size:11px;color:var(--ink3)}
-.chat-messages{padding:14px 16px;display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto}
+.chat-messages{padding:14px 16px;display:flex;flex-direction:column;gap:10px;max-height:380px;overflow-y:auto}
 .chat-msg{display:flex;flex-direction:column;max-width:90%}
 .chat-msg.user{align-self:flex-end;align-items:flex-end}
 .chat-msg.ai{align-self:flex-start}
@@ -181,8 +190,8 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 .divider{height:1px;background:var(--line);margin:20px 0}
 .gap-8{display:flex;flex-direction:column;gap:8px}
 .mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}
-.mt-20{margin-top:20px}.mt-24{margin-top:24px}.mt-32{margin-top:32px}.mt-40{margin-top:40px}.mt-44{margin-top:44px}
-.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}.mb-20{margin-bottom:20px}
+.mt-20{margin-top:20px}.mt-24{margin-top:24px}.mt-32{margin-top:32px}.mt-40{margin-top:40px}
+.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-14{margin-bottom:14px}.mb-16{margin-bottom:16px}
 
 /* Fade animations */
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -220,69 +229,36 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
   </div>
 
   <div class="fu">
-    <h1 class="t-hero">Could you be<br>at genetic risk?</h1>
-    <p class="t-body mt-16" style="max-width:400px;font-size:16px">Upload your 23andMe or AncestryDNA file. Our AI reads your real variants, queries live research databases, and explains what the science actually says — in plain English.</p>
+    <h1 class="t-hero">What diseases<br>are you at risk for?</h1>
+    <p class="t-body mt-16" style="max-width:420px">Enter your genetic variant IDs — our AI automatically scans all known disease associations, calculates your polygenic risk scores, and tells you which conditions your DNA is linked to. No disease selection needed.</p>
   </div>
 
-  <div class="mt-40 fu2">
-    <p class="t-label mb-12">1 — Choose a condition</p>
-    <div class="disease-cards">
+  <div class="mt-36 fu2">
+    <p class="t-label mb-10">Paste your rsIDs</p>
+    <textarea class="rsid-textarea" id="rsid-input"
+      placeholder="rs7903146&#10;rs1333049&#10;rs1061170&#10;rs10490924&#10;…one per line"
+      oninput="handleRsidInput()"></textarea>
+    <p class="t-small mt-6">One rsID per line. Genotypes optional — the AI pulls associations from live research databases.</p>
 
-      <div class="disease-card" data-disease="type2_diabetes" onclick="selectDisease(this)">
-        <div class="disease-icon" style="background:#FEF3C7">🩸</div>
-        <div style="flex:1">
-          <div class="disease-card-name">Type 2 Diabetes</div>
-          <div class="disease-card-sub">Analyzes 6 variants including TCF7L2</div>
-        </div>
-        <div class="disease-check">
-          <svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-      </div>
+    <div class="or-divider mt-16"><span>or upload a DNA file</span></div>
 
-      <div class="disease-card" data-disease="coronary_artery_disease" onclick="selectDisease(this)">
-        <div class="disease-icon" style="background:#FEE2E2">❤️</div>
-        <div style="flex:1">
-          <div class="disease-card-name">Heart Disease</div>
-          <div class="disease-card-sub">Coronary artery disease — the 9p21.3 locus</div>
-        </div>
-        <div class="disease-check">
-          <svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-      </div>
-
-      <div class="disease-card" data-disease="age_related_macular_degeneration" onclick="selectDisease(this)">
-        <div class="disease-icon" style="background:#EDE9FE">👁️</div>
-        <div style="flex:1">
-          <div class="disease-card-name">Macular Degeneration</div>
-          <div class="disease-card-sub">AMD — CFH and ARMS2 variants</div>
-        </div>
-        <div class="disease-check">
-          <svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="mt-24 fu3">
-    <p class="t-label mb-12">2 — Upload your DNA file</p>
     <div class="upload-zone" id="upload-zone"
       ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave()">
       <input type="file" accept=".txt,.tsv,.csv,text/plain" onchange="handleFileSelect(event)">
       <div class="upload-hint">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" style="margin:0 auto 10px">
+        <svg width="32" height="32" viewBox="0 0 36 36" fill="none" style="margin:0 auto 8px">
           <rect width="36" height="36" rx="11" fill="var(--teal-lt)"/>
           <path d="M18 25V11M18 11L13 16M18 11L23 16" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M11 27H25" stroke="var(--teal)" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <p style="font-size:14px;font-weight:600;color:var(--ink)">Drop your file here or click to browse</p>
-        <p class="t-small mt-4">23andMe or AncestryDNA export (.txt or .tsv)</p>
+        <p style="font-size:14px;font-weight:600;color:var(--ink)">Drop your 23andMe or AncestryDNA file</p>
+        <p class="t-small mt-4">Accepted: .txt or .tsv export</p>
       </div>
       <div class="upload-file-name" id="upload-filename"></div>
     </div>
   </div>
 
-  <div class="mt-20 fu4 gap-8">
+  <div class="mt-20 fu3 gap-8">
     <button class="btn btn-primary" id="btn-analyze" onclick="startAnalysis()" disabled>
       Analyze my DNA
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2.5 7.5h10M9 3.5l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -290,7 +266,7 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
     <button class="btn btn-secondary" onclick="runDemo()">Try a live demo →</button>
   </div>
 
-  <p class="t-small mt-20" style="text-align:center">Your file is processed locally — nothing is uploaded to our servers.</p>
+  <p class="t-small mt-20" style="text-align:center">Your data is processed locally — nothing leaves your device.</p>
 
 </div>
 </div>
@@ -304,7 +280,7 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M9 2L4 6.5L9 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Back
     </button>
-    <span class="pill pill-teal" id="analyze-pill">Type 2 Diabetes</span>
+    <span class="pill pill-teal">3 Conditions</span>
   </div>
 
   <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
@@ -312,8 +288,8 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
       <div class="spinner"></div>
       AI Agent Running
     </div>
-    <h2 class="t-title" id="analyze-title">Analyzing your<br>DNA variants<span class="typing-dots"></span></h2>
-    <p class="t-body mt-10">Querying live research databases and evaluating your specific genotype against published genome-wide studies.</p>
+    <h2 class="t-title">Scanning all known<br>disease associations<span class="typing-dots"></span></h2>
+    <p class="t-body mt-10">Querying the NHGRI-EBI GWAS Catalog across Type 2 Diabetes, Heart Disease, and Macular Degeneration simultaneously.</p>
     <div class="divider mt-28"></div>
     <div class="steps-list" id="steps-list"></div>
   </div>
@@ -330,52 +306,28 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M9 2L4 6.5L9 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       New analysis
     </button>
-    <span class="pill pill-teal" id="result-pill">Type 2 Diabetes</span>
+    <span class="pill pill-violet">
+      <svg width="10" height="10" viewBox="0 0 11 11" fill="currentColor"><path d="M5.5 0L6.8 3.9H11L7.7 6.3L9 10.2L5.5 7.8L2 10.2L3.3 6.3L0 3.9H4.2L5.5 0Z"/></svg>
+      AI Analysis
+    </span>
   </div>
 
-  <!-- Risk display -->
-  <div class="risk-display fu">
-    <div class="risk-tier-label">Your genetic risk level</div>
-    <div class="risk-word" id="result-tier">MODERATE</div>
-    <div class="t-small" id="result-sub">65th percentile · Moderate confidence</div>
-    <div class="pct-bar"><div class="pct-fill" id="pct-fill" style="width:0%"></div></div>
-    <div class="pct-labels"><span>Lower risk</span><span>Average</span><span>Higher risk</span></div>
+  <div class="fu mb-14">
+    <p class="t-label mb-6">YOUR GENETIC RISK REPORT</p>
+    <h2 class="t-title" style="font-size:26px" id="results-headline">3 conditions analyzed</h2>
+    <p class="t-body mt-6" style="font-size:14px">Ranked by genetic risk · tap a condition to expand details</p>
   </div>
 
-  <!-- Analysis header -->
-  <div class="fu2" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <h2 class="t-heading">Your analysis</h2>
-    <div class="ai-badge" style="font-size:10px">
-      <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M5.5 0L6.8 3.9H11L7.7 6.3L9 10.2L5.5 7.8L2 10.2L3.3 6.3L0 3.9H4.2L5.5 0Z"/></svg>
-      AI-written
-    </div>
-  </div>
-
-  <!-- Tabs -->
-  <div class="tabs fu3">
-    <button class="tab active" onclick="switchTab('narrative',this)">Analysis</button>
-    <button class="tab" onclick="switchTab('lifestyle',this)">Lifestyle</button>
-    <button class="tab" onclick="switchTab('evidence',this)">Evidence</button>
-  </div>
-
-  <div class="tab-content active" id="tab-narrative">
-    <div id="narrative-content"></div>
-  </div>
-  <div class="tab-content" id="tab-lifestyle">
-    <div class="lifestyle-list" id="lifestyle-content"></div>
-  </div>
-  <div class="tab-content" id="tab-evidence">
-    <p class="t-body mb-14" style="font-size:13px">Variants from your DNA file matched against the NHGRI-EBI GWAS Catalog. Each contribution = log(OR) × your allele count.</p>
-    <div class="evidence-list" id="evidence-content"></div>
-  </div>
+  <!-- Disease result cards injected here -->
+  <div id="disease-results" class="fu2"></div>
 
   <!-- Chat -->
-  <div class="chat-section fu4" id="chat-section">
+  <div class="chat-section fu3" id="chat-section">
     <div class="chat-header">
       <div class="chat-header-icon">🤖</div>
       <div>
-        <div class="chat-header-name">Ask AI anything</div>
-        <div class="chat-header-sub">About your results, risk, or this disease</div>
+        <div class="chat-header-name" id="chat-header-name">Ask AI anything</div>
+        <div class="chat-header-sub" id="chat-header-sub">About your results, risk, or prevention</div>
       </div>
     </div>
     <div class="chat-messages" id="chat-messages"></div>
@@ -404,7 +356,28 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 const NITROSTACK_URL = 'http://localhost:3000';
 
 // ─────────────────────────── STATE ───────────────────────────
-const state = { disease: null, fileContent: null, results: null };
+const state = { fileContent: null, rsidText: null, allResults: [], activeDisease: null };
+
+// ─────────────────────────── CONSTANTS ───────────────────────────
+const DISEASE_LABELS = {
+  type2_diabetes: 'Type 2 Diabetes',
+  coronary_artery_disease: 'Heart Disease',
+  age_related_macular_degeneration: 'Macular Degeneration',
+};
+
+const DISEASE_SHORT = {
+  type2_diabetes: 't2d',
+  coronary_artery_disease: 'cad',
+  age_related_macular_degeneration: 'amd',
+};
+
+const DISEASE_ICONS = {
+  type2_diabetes:  { emoji: '🩸', bg: '#FEF3C7' },
+  coronary_artery_disease: { emoji: '❤️', bg: '#FEE2E2' },
+  age_related_macular_degeneration: { emoji: '👁️', bg: '#EDE9FE' },
+};
+
+const TIER_ORDER = { high: 0, moderate: 1, low: 2 };
 
 // ─────────────────────────── DEMO DATA ───────────────────────────
 const DEMO = {
@@ -412,87 +385,79 @@ const DEMO = {
     disease:'type2_diabetes', diseaseName:'Type 2 Diabetes',
     riskInterpretation:{ tier:'moderate', percentileApprox:65, confidenceLevel:'moderate', prsScore:0.42 },
     narrative:`<p>Your analysis identified six genetic variants in known Type 2 Diabetes risk genes. The most meaningful signal centers on TCF7L2 — the strongest single genetic risk factor for T2D found in large-scale human genetics. At rs7903146, you carry the TC genotype: one copy of the T risk allele, one of the protective C allele. Studies of over 100,000 participants show that each T allele increases T2D odds by roughly 1.4×, through effects on how pancreatic beta cells sense and respond to glucose. With one copy, your TCF7L2 function is partially impaired — placing you in a middle-ground category where insulin secretion is somewhat reduced under high-carbohydrate load, but not severely compromised.</p>
-<p>A second variant, rs12255372 (also in TCF7L2), compounds this effect modestly. The remaining four variants — rs4402960 in IGF2BP2, rs7756992 in CDKAL1, rs1111875 near HHEX, and rs13266634 in SLC30A8 — each contribute smaller incremental effects. Your total polygenic risk score of 0.42 places you at approximately the 65th population percentile: above average, but comfortably out of the high-risk tail where genetic effects accelerate significantly.</p>
-<p>The most important thing to understand: T2D risk from genetics is highly modifiable. The landmark Diabetes Prevention Program found that 150 minutes of moderate walking per week, combined with a 5–7% reduction in body weight, reduced T2D incidence by 58% in high-risk individuals — more effective than metformin. Your genetic background makes prevention worthwhile, not inevitable.</p>`,
+<p>A second variant, rs12255372 (also in TCF7L2), compounds this effect modestly. The remaining four variants — rs4402960 in IGF2BP2, rs7756992 in CDKAL1, rs1111875 near HHEX, and rs13266634 in SLC30A8 — each contribute smaller incremental effects. Your total polygenic risk score places you at approximately the 65th population percentile: above average, but comfortably out of the high-risk tail.</p>
+<p>The most important thing to understand: T2D risk from genetics is highly modifiable. The landmark Diabetes Prevention Program found that 150 minutes of moderate walking per week, combined with a 5–7% reduction in body weight, reduced T2D incidence by 58% in high-risk individuals. Your genetic background makes prevention worthwhile, not inevitable.</p>`,
     lifestyleContext:{ factors:[
-      {category:'Physical activity', description:'150 min/week of moderate aerobic exercise reduces T2D incidence independent of weight loss. The Diabetes Prevention Program showed −58% risk.'},
-      {category:'Diet', description:'Reducing refined carbohydrates and increasing dietary fibre is strongly associated with lower risk. Mediterranean and DASH patterns show the strongest evidence.'},
-      {category:'Weight management', description:'A 5–7% reduction in body weight reduces progression to T2D by ~58% (DPP trial), regardless of whether you reach a "healthy" weight.'},
+      {category:'Physical activity', description:'150 min/week of moderate aerobic exercise reduces T2D incidence independent of weight loss. The DPP showed −58% risk.'},
+      {category:'Diet', description:'Reducing refined carbohydrates and increasing dietary fibre. Mediterranean and DASH patterns show the strongest evidence.'},
+      {category:'Weight management', description:'A 5–7% reduction in body weight reduces progression to T2D by ~58% (DPP trial), regardless of reaching a "healthy" weight.'},
       {category:'Sleep', description:'Short or disrupted sleep impairs glucose regulation through cortisol and insulin pathways. Aim for 7–9 consistent hours.'},
-      {category:'Smoking cessation', description:'Smoking impairs insulin sensitivity. Cessation improves glucose metabolism and reduces T2D risk measurably within months.'},
+      {category:'Smoking cessation', description:'Smoking impairs insulin sensitivity. Cessation improves glucose metabolism measurably within months.'},
     ]},
     prsResult:{ contributions:[
-      {rsid:'rs7903146', genotype:'TC', riskAllele:'T', contribution:0.178},
-      {rsid:'rs12255372', genotype:'TG', riskAllele:'T', contribution:0.092},
-      {rsid:'rs4402960', genotype:'GT', riskAllele:'T', contribution:0.063},
-      {rsid:'rs7756992', genotype:'AC', riskAllele:'G', contribution:0.052},
-      {rsid:'rs1111875', genotype:'CT', riskAllele:'C', contribution:0.021},
-      {rsid:'rs13266634', genotype:'CG', riskAllele:'C', contribution:0.014},
+      {rsid:'rs7903146', riskAllele:'T', contribution:0.178},
+      {rsid:'rs12255372', riskAllele:'T', contribution:0.092},
+      {rsid:'rs4402960', riskAllele:'T', contribution:0.063},
+      {rsid:'rs7756992', riskAllele:'G', contribution:0.052},
+      {rsid:'rs1111875', riskAllele:'C', contribution:0.021},
+      {rsid:'rs13266634', riskAllele:'C', contribution:0.014},
     ]}
   },
   coronary_artery_disease: {
     disease:'coronary_artery_disease', diseaseName:'Heart Disease',
     riskInterpretation:{ tier:'high', percentileApprox:78, confidenceLevel:'moderate', prsScore:0.61 },
     narrative:`<p>Your analysis examined two high-impact variants in the 9p21.3 chromosomal region — sometimes called the "heart attack locus" — identified in over 50 independent genome-wide association studies. At rs1333049, you carry the CC genotype: two copies of the C risk allele. Research associates the CC configuration with approximately 1.6× higher CAD odds compared to GG carriers. The 9p21.3 region regulates CDKN2A and CDKN2B, genes controlling smooth muscle cell proliferation in artery walls — the biological process underlying atherosclerotic plaque formation.</p>
-<p>At rs4977574, you also carry a risk allele. Your combined polygenic risk score of 0.61 places you at approximately the 78th population percentile — substantially above average. This does not mean heart disease is certain, but it does mean proactive cardiovascular management is genuinely worthwhile rather than optional.</p>
-<p>The encouraging data: CAD responds more dramatically to lifestyle intervention than almost any other common disease. Smoking cessation alone reduces CAD risk by up to 50% within five years. LDL cholesterol management, Mediterranean-pattern diet, regular aerobic exercise, and blood pressure control together can effectively counterbalance even high polygenic risk. Large cohort studies show people with high CAD genetic scores who maintain favorable lifestyle factors achieve event rates similar to genetically low-risk individuals. Annual lipid panels and blood pressure checks are a reasonable starting point given your profile.</p>`,
+<p>At rs4977574, you also carry a risk allele. Your combined polygenic risk score places you at approximately the 78th population percentile — substantially above average. This does not mean heart disease is certain, but proactive cardiovascular management is genuinely worthwhile rather than optional.</p>
+<p>The encouraging data: CAD responds more dramatically to lifestyle intervention than almost any other common disease. Smoking cessation alone reduces CAD risk by up to 50% within five years. Large cohort studies show people with high CAD genetic scores who maintain favorable lifestyle factors achieve event rates similar to genetically low-risk individuals.</p>`,
     lifestyleContext:{ factors:[
       {category:'Smoking cessation', description:'The single biggest modifiable CAD risk factor. Cessation reduces risk by up to 50% within 5 years — more than any medication.'},
-      {category:'LDL cholesterol management', description:'Reducing saturated fat and increasing soluble fibre lowers LDL. Statin therapy in high-genetic-risk individuals shows dramatic primary prevention benefit.'},
-      {category:'Mediterranean diet', description:'The PREDIMED trial showed 30% fewer cardiovascular events on a Mediterranean diet vs. low-fat diet. Olive oil, fish, nuts, vegetables, limited red meat.'},
+      {category:'LDL cholesterol', description:'Reducing saturated fat and increasing soluble fibre lowers LDL. Statin therapy in high-genetic-risk individuals shows dramatic primary prevention benefit.'},
+      {category:'Mediterranean diet', description:'The PREDIMED trial showed 30% fewer cardiovascular events on a Mediterranean diet. Olive oil, fish, nuts, vegetables, limited red meat.'},
       {category:'Physical activity', description:'Regular aerobic exercise improves endothelial function, raises HDL, reduces LDL, and lowers blood pressure simultaneously.'},
-      {category:'Blood pressure control', description:'Hypertension management through DASH diet and exercise significantly reduces CAD event risk. Target <120/80 mmHg.'},
+      {category:'Blood pressure control', description:'Hypertension management through DASH diet and exercise reduces CAD event risk significantly. Target <120/80 mmHg.'},
     ]},
     prsResult:{ contributions:[
-      {rsid:'rs1333049', genotype:'CC', riskAllele:'C', contribution:0.376},
-      {rsid:'rs4977574', genotype:'GA', riskAllele:'G', contribution:0.234},
+      {rsid:'rs1333049', riskAllele:'C', contribution:0.376},
+      {rsid:'rs4977574', riskAllele:'G', contribution:0.234},
     ]}
   },
   age_related_macular_degeneration: {
     disease:'age_related_macular_degeneration', diseaseName:'Macular Degeneration',
     riskInterpretation:{ tier:'low', percentileApprox:38, confidenceLevel:'moderate', prsScore:0.71 },
-    narrative:`<p>Your analysis examined rs1061170 in the CFH gene and rs10490924 in the ARMS2/HTRA1 locus — the two most well-established AMD risk variants in human genetics. These two loci together explain a larger fraction of heritability than any other known variants for any common disease — a remarkable fact about AMD genetics. At rs1061170, you carry the TC genotype: one protective T allele and one moderate-risk C allele. People with the CC genotype carry 7–8× higher AMD risk than TT carriers — a striking effect size. Your TC genotype falls in the middle, without dramatic elevation from this variant.</p>
-<p>At rs10490924 (ARMS2), your configuration also contributes modestly without placing you in the high-risk category. Your combined score of 0.71 sits at approximately the 38th population percentile — below average for AMD genetic risk. About 62% of the population carries higher genetic predisposition than you.</p>
-<p>CFH encodes a complement system regulatory protein. Protective CFH variants provide better "inflammation brakes" in the retinal pigment epithelium — suppressing the chronic low-grade complement activation that damages the macula over decades. Your particular haplotype combination doesn't show the high-risk patterns that predict aggressive or early-onset AMD, which is genuinely reassuring. Standard prevention — not smoking, UV-protective eyewear, regular ophthalmology visits — is likely sufficient given your below-average genetic baseline.</p>`,
+    narrative:`<p>Your analysis examined rs1061170 in the CFH gene and rs10490924 in the ARMS2/HTRA1 locus — the two most well-established AMD risk variants in human genetics. These two loci together explain a larger fraction of heritability than any other known variants for any common disease. At rs1061170, you carry the TC genotype: one protective T allele and one moderate-risk C allele. Your TC genotype falls in the middle, without the dramatic elevation seen in CC carriers (who carry 7–8× higher AMD risk than TT carriers).</p>
+<p>At rs10490924 (ARMS2), your configuration also contributes modestly without placing you in the high-risk category. Your combined score sits at approximately the 38th population percentile — below average for AMD genetic risk. About 62% of the population carries higher genetic predisposition than you.</p>
+<p>CFH encodes a complement system regulatory protein. Protective CFH variants provide better "inflammation brakes" in the retinal pigment epithelium — suppressing the chronic low-grade complement activation that damages the macula over decades. Your haplotype combination doesn't show the high-risk patterns that predict aggressive or early-onset AMD, which is genuinely reassuring.</p>`,
     lifestyleContext:{ factors:[
-      {category:'Smoking cessation', description:'The most important modifiable AMD risk factor. Smokers have 2–4× higher AMD risk regardless of genetics. Cessation brings risk toward non-smoker levels over time.'},
-      {category:'AREDS2 supplements', description:'Vitamin C, E, zinc, lutein, and zeaxanthin reduce AMD progression risk by 25% in at-risk individuals. Ask your ophthalmologist if relevant for you.'},
-      {category:'UV protection', description:'UV-blocking sunglasses reduce cumulative retinal UV exposure. Supported by several cohort studies as a protective measure.'},
-      {category:'Blood pressure control', description:'Hypertension is associated with AMD progression, likely through effects on choroidal blood flow and Bruch\'s membrane integrity.'},
+      {category:'Smoking cessation', description:'The most important modifiable AMD risk factor. Smokers have 2–4× higher AMD risk regardless of genetics. Cessation brings risk toward non-smoker levels.'},
+      {category:'AREDS2 supplements', description:'Vitamin C, E, zinc, lutein, and zeaxanthin reduce AMD progression risk by 25% in at-risk individuals. Ask your ophthalmologist.'},
+      {category:'UV protection', description:'UV-blocking sunglasses reduce cumulative retinal UV exposure, supported by cohort studies as a protective measure.'},
+      {category:'Blood pressure control', description:'Hypertension is associated with AMD progression through effects on choroidal blood flow and Bruch\'s membrane integrity.'},
     ]},
     prsResult:{ contributions:[
-      {rsid:'rs1061170',  genotype:'TC', riskAllele:'C', contribution:0.412},
-      {rsid:'rs10490924', genotype:'GT', riskAllele:'T', contribution:0.298},
+      {rsid:'rs1061170',  riskAllele:'C', contribution:0.412},
+      {rsid:'rs10490924', riskAllele:'T', contribution:0.298},
     ]}
   },
-};
-
-const DISEASE_LABELS = {
-  type2_diabetes:'Type 2 Diabetes',
-  coronary_artery_disease:'Heart Disease',
-  age_related_macular_degeneration:'Macular Degeneration',
 };
 
 // ─────────────────────────── SCREENS ───────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  window.scrollTo(0,0);
+  window.scrollTo(0, 0);
 }
 
-// ─────────────────────────── DISEASE SELECT ───────────────────────────
-function selectDisease(card) {
-  document.querySelectorAll('.disease-card').forEach(c => c.classList.remove('selected'));
-  card.classList.add('selected');
-  state.disease = card.dataset.disease;
+// ─────────────────────────── INPUT HANDLING ───────────────────────────
+function handleRsidInput() {
+  state.rsidText = document.getElementById('rsid-input').value;
   checkAnalyzeButton();
 }
 
 function checkAnalyzeButton() {
-  document.getElementById('btn-analyze').disabled = !(state.disease && state.fileContent);
+  const hasInput = !!(state.fileContent || (state.rsidText && state.rsidText.trim().length > 0));
+  document.getElementById('btn-analyze').disabled = !hasInput;
 }
 
-// ─────────────────────────── FILE UPLOAD ───────────────────────────
 function handleDrop(e) {
   e.preventDefault(); handleDragLeave();
   const f = e.dataTransfer.files[0];
@@ -509,54 +474,42 @@ function processFile(f) {
   r.readAsText(f);
 }
 
-// ─────────────────────────── STEPS ───────────────────────────
-const STEPS = {
-  type2_diabetes:[
-    {name:'Reading your DNA file',detail:'Scanning for 6 target rsIDs…'},
-    {name:'GWAS Catalog → rs7903146',detail:'TCF7L2 · 12 associations found'},
-    {name:'GWAS Catalog → rs12255372',detail:'TCF7L2 · 8 associations found'},
-    {name:'GWAS Catalog → rs4402960, rs7756992…',detail:'IGF2BP2, CDKAL1 · scanning remaining 4'},
-    {name:'AI evaluating evidence quality',detail:'Applying p<5×10⁻⁸, n≥1000, ancestry filters'},
-    {name:'Calculating polygenic risk score',detail:'Σ log(OR) × allele count per variant'},
-    {name:'AI writing your personal analysis',detail:'Composing narrative for your specific genotype…'},
-  ],
-  coronary_artery_disease:[
-    {name:'Reading your DNA file',detail:'Scanning for 2 target rsIDs…'},
-    {name:'GWAS Catalog → rs1333049',detail:'9p21.3 locus · 19 associations found'},
-    {name:'GWAS Catalog → rs4977574',detail:'9p21.3 locus · 15 associations found'},
-    {name:'AI evaluating evidence quality',detail:'Applying p<5×10⁻⁸, n≥1000, ancestry filters'},
-    {name:'Calculating polygenic risk score',detail:'Σ log(OR) × allele count per variant'},
-    {name:'AI writing your personal analysis',detail:'Composing narrative for your specific genotype…'},
-  ],
-  age_related_macular_degeneration:[
-    {name:'Reading your DNA file',detail:'Scanning for 2 target rsIDs…'},
-    {name:'GWAS Catalog → rs1061170',detail:'CFH gene · 18 associations found'},
-    {name:'GWAS Catalog → rs10490924',detail:'ARMS2/HTRA1 · 11 associations found'},
-    {name:'AI evaluating evidence quality',detail:'Applying p<5×10⁻⁸, n≥1000, ancestry filters'},
-    {name:'Calculating polygenic risk score',detail:'Σ log(OR) × allele count per variant'},
-    {name:'AI writing your personal analysis',detail:'Composing narrative for your specific genotype…'},
-  ],
-};
+function rsidsToFileContent(text) {
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(l => /^rs\d+/i.test(l));
+  const header = '# rsid\tchromosome\tposition\tgenotype\n';
+  const rows = lines.map(rsid => `${rsid.toLowerCase()}\t0\t0\tNN`).join('\n');
+  return header + rows;
+}
 
-function buildSteps(disease) {
-  const steps = STEPS[disease] || STEPS.type2_diabetes;
-  document.getElementById('steps-list').innerHTML = steps.map((s,i) =>
+// ─────────────────────────── LOADING STEPS ───────────────────────────
+const ALL_STEPS = [
+  {name:'Reading your genetic data',           detail:'Extracting and validating rsIDs…'},
+  {name:'Scanning → Type 2 Diabetes',          detail:'TCF7L2, IGF2BP2, CDKAL1 · querying GWAS Catalog…'},
+  {name:'Scanning → Heart Disease',            detail:'9p21.3 locus · rs1333049, rs4977574…'},
+  {name:'Scanning → Macular Degeneration',     detail:'CFH, ARMS2/HTRA1 · querying GWAS Catalog…'},
+  {name:'AI evaluating evidence quality',      detail:'Applying p<5×10⁻⁸, n≥1000, ancestry filters…'},
+  {name:'Calculating polygenic risk scores',   detail:'Σ log(OR) × allele count per disease…'},
+  {name:'AI writing your risk report',         detail:'Composing ranked analysis for your genotype…'},
+];
+
+const CHECK_SVG = `<svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function buildAllSteps() {
+  document.getElementById('steps-list').innerHTML = ALL_STEPS.map((s, i) =>
     `<div class="step-item" id="st-${i}">
       <div class="step-icon" id="si-${i}">${i+1}</div>
       <div><div class="step-name">${s.name}</div><div class="step-detail">${s.detail}</div></div>
     </div>`
   ).join('');
-  return steps.length;
+  return ALL_STEPS.length;
 }
-
-const CHECK_SVG = `<svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 function animateSteps(total, onDone) {
   let i = 0;
   function tick() {
     if (i >= total) { setTimeout(onDone, 300); return; }
     document.getElementById(`st-${i}`).classList.add('active');
-    const delay = i === total-1 ? 1800 : 650 + Math.random()*550;
+    const delay = i === total - 1 ? 1800 : 650 + Math.random() * 550;
     setTimeout(() => {
       const el = document.getElementById(`st-${i}`);
       el.classList.remove('active'); el.classList.add('done');
@@ -569,195 +522,282 @@ function animateSteps(total, onDone) {
 
 // ─────────────────────────── ANALYSIS FLOW ───────────────────────────
 async function startAnalysis() {
-  if (!state.disease || !state.fileContent) return;
-  goAnalyze();
+  if (!state.fileContent && !(state.rsidText && state.rsidText.trim())) return;
+  showScreen('s-analyze');
   let results;
-  try { results = await callServer(); }
-  catch(e) { console.warn('Server unavailable, using demo data'); results = DEMO[state.disease]; }
-  state.results = results;
-  const total = buildSteps(state.disease);
-  animateSteps(total, () => renderResults(results));
+  try {
+    results = await callAllDiseases();
+    if (!results || results.length === 0) throw new Error('No results');
+  } catch(e) {
+    console.warn('Server unavailable, using demo data');
+    results = Object.values(DEMO);
+  }
+  state.allResults = rankResults(results);
+  const total = buildAllSteps();
+  animateSteps(total, () => renderAllResults(state.allResults));
 }
 
 function runDemo() {
-  if (!state.disease) {
-    state.disease = 'type2_diabetes';
-    const c = document.querySelector('[data-disease="type2_diabetes"]');
-    document.querySelectorAll('.disease-card').forEach(x=>x.classList.remove('selected'));
-    if(c) c.classList.add('selected');
-  }
-  state.results = DEMO[state.disease];
-  goAnalyze();
-  const total = buildSteps(state.disease);
-  animateSteps(total, () => renderResults(state.results));
-}
-
-function goAnalyze() {
-  document.getElementById('analyze-pill').textContent = DISEASE_LABELS[state.disease] || state.disease;
+  state.allResults = rankResults(Object.values(DEMO));
   showScreen('s-analyze');
+  const total = buildAllSteps();
+  animateSteps(total, () => renderAllResults(state.allResults));
 }
 
-async function callServer() {
+function rankResults(results) {
+  return [...results].sort((a, b) => {
+    const ta = TIER_ORDER[a.riskInterpretation?.tier] ?? 1;
+    const tb = TIER_ORDER[b.riskInterpretation?.tier] ?? 1;
+    if (ta !== tb) return ta - tb;
+    return (b.riskInterpretation?.percentileApprox || 0) - (a.riskInterpretation?.percentileApprox || 0);
+  });
+}
+
+// ─────────────────────────── SERVER CALLS ───────────────────────────
+async function callAllDiseases() {
+  const fileContent = state.fileContent || rsidsToFileContent(state.rsidText);
+  const diseases = ['type2_diabetes', 'coronary_artery_disease', 'age_related_macular_degeneration'];
+
   const initRes = await fetch(`${NITROSTACK_URL}/mcp`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},
-    body:JSON.stringify({jsonrpc:'2.0',method:'initialize',id:1,
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Accept':'application/json, text/event-stream'},
+    body: JSON.stringify({jsonrpc:'2.0',method:'initialize',id:1,
       params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'PolyRisk-UI',version:'1.0.0'}}})
   });
   const sessionId = initRes.headers.get('mcp-session-id') || '';
   await initRes.json();
 
-  const toolRes = await fetch(`${NITROSTACK_URL}/mcp`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream','Mcp-Session-Id':sessionId},
-    body:JSON.stringify({jsonrpc:'2.0',method:'tools/call',id:2,
-      params:{name:'analyze_genetic_file',arguments:{fileContent:state.fileContent,disease:state.disease,userAncestry:'European'}}})
-  });
+  const results = await Promise.all(
+    diseases.map((d, i) => callDisease(sessionId, d, fileContent, i + 2))
+  );
+  return results.filter(r => r !== null);
+}
 
-  const ct = toolRes.headers.get('content-type') || '';
-  let data;
-  if (ct.includes('text/event-stream')) {
-    const txt = await toolRes.text();
-    const lines = txt.split('\n').filter(l=>l.startsWith('data: '));
-    data = JSON.parse(lines[lines.length-1].slice(6));
-  } else { data = await toolRes.json(); }
-
-  if (data.error) throw new Error(data.error.message);
-  const content = data.result?.content;
-  if (Array.isArray(content)) {
-    const t = content.find(c=>c.type==='text');
-    if (t) return JSON.parse(t.text);
+async function callDisease(sessionId, disease, fileContent, id) {
+  try {
+    const res = await fetch(`${NITROSTACK_URL}/mcp`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Accept':'application/json, text/event-stream','Mcp-Session-Id':sessionId},
+      body: JSON.stringify({jsonrpc:'2.0',method:'tools/call',id,
+        params:{name:'analyze_genetic_file',arguments:{fileContent,disease,userAncestry:'European'}}})
+    });
+    const ct = res.headers.get('content-type') || '';
+    let data;
+    if (ct.includes('text/event-stream')) {
+      const txt = await res.text();
+      const lines = txt.split('\n').filter(l => l.startsWith('data: '));
+      data = JSON.parse(lines[lines.length - 1].slice(6));
+    } else {
+      data = await res.json();
+    }
+    if (data.error) return null;
+    const content = data.result?.content;
+    if (Array.isArray(content)) {
+      const textItem = content.find(c => c.type === 'text');
+      if (textItem) return JSON.parse(textItem.text);
+    }
+    return data.result || null;
+  } catch(e) {
+    return null;
   }
-  return data.result;
 }
 
 // ─────────────────────────── RENDER RESULTS ───────────────────────────
-function renderResults(r) {
-  if (!r) { showScreen('s-welcome'); return; }
-  const tier = r.riskInterpretation?.tier || 'moderate';
-  const pct = r.riskInterpretation?.percentileApprox || 50;
-  const conf = r.riskInterpretation?.confidenceLevel || 'moderate';
-  const label = DISEASE_LABELS[r.disease] || r.diseaseName || '';
+function renderAllResults(results) {
+  if (!results || results.length === 0) { showScreen('s-welcome'); return; }
 
-  document.getElementById('result-pill').textContent = label;
-  const tw = document.getElementById('result-tier');
-  tw.textContent = tier.toUpperCase();
-  tw.className = 'risk-word ' + tier;
-  document.getElementById('result-sub').textContent =
-    `${pct}th percentile · ${conf.charAt(0).toUpperCase()+conf.slice(1)} confidence`;
+  // Headline
+  const highCount = results.filter(r => r.riskInterpretation?.tier === 'high').length;
+  const headline = highCount > 0
+    ? `${highCount} elevated risk condition${highCount > 1 ? 's' : ''} found`
+    : '3 conditions analyzed';
+  document.getElementById('results-headline').textContent = headline;
 
-  const fill = document.getElementById('pct-fill');
-  fill.className = 'pct-fill fill-' + tier;
-  setTimeout(() => fill.style.width = pct + '%', 400);
+  // Build disease cards
+  document.getElementById('disease-results').innerHTML = results.map((r, idx) => buildDiseaseCard(r, idx === 0)).join('');
 
-  // Narrative
-  document.getElementById('narrative-content').innerHTML =
-    `<div class="narrative">${r.narrative || '<p>Analysis complete.</p>'}</div>`;
+  // Animate first card's bar after brief delay
+  setTimeout(() => triggerBarAnimation(results[0]), 400);
 
-  // Lifestyle
-  const lf = r.lifestyleContext?.factors || [];
-  document.getElementById('lifestyle-content').innerHTML = lf.map((f,i) =>
-    `<div class="lifestyle-item">
-      <div class="ls-num">${i+1}</div>
-      <div><div class="ls-cat">${f.category}</div><div class="ls-desc">${f.description}</div></div>
-    </div>`
-  ).join('');
-
-  // Evidence
-  const contribs = r.prsResult?.contributions || [];
-  document.getElementById('evidence-content').innerHTML = contribs.length
-    ? contribs.map(c =>
-        `<div class="evidence-card">
-          <div class="ev-rsid">${c.rsid}</div>
-          <div class="ev-detail">Genotype: <strong>${c.genotype}</strong> · Risk allele: <strong>${c.riskAllele}</strong> · Score contribution: <span style="font-family:var(--mono)">${(c.contribution>=0?'+':'')+c.contribution.toFixed(3)}</span></div>
-          <span class="ev-badge">GWAS-confirmed</span>
-        </div>`
-      ).join('')
-    : '<p class="t-small">No variant data available.</p>';
-
-  // Reset tabs
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===0));
-  document.querySelectorAll('.tab-content').forEach((tc,i)=>tc.classList.toggle('active',i===0));
-
-  // Chat
-  setQuickReplies(r.disease);
-  initChat(r);
+  // Init chat with top-ranked disease
+  state.activeDisease = results[0].disease;
+  updateChat(results[0]);
 
   showScreen('s-results');
 }
 
+function buildDiseaseCard(r, expanded) {
+  const d = DISEASE_SHORT[r.disease] || r.disease;
+  const tier = r.riskInterpretation?.tier || 'moderate';
+  const pct = r.riskInterpretation?.percentileApprox || 50;
+  const conf = r.riskInterpretation?.confidenceLevel || 'moderate';
+  const name = DISEASE_LABELS[r.disease] || r.diseaseName || r.disease;
+  const icon = DISEASE_ICONS[r.disease] || { emoji: '🧬', bg: '#E3F4F0' };
+
+  const lifestyleHTML = (r.lifestyleContext?.factors || []).map((f, i) =>
+    `<div class="lifestyle-item">
+      <div class="ls-num">${i+1}</div>
+      <div><div class="ls-cat">${f.category}</div><div class="ls-desc">${f.description}</div></div>
+    </div>`
+  ).join('') || '<p class="t-small" style="padding:8px 0">No lifestyle data available.</p>';
+
+  const evidenceHTML = (r.prsResult?.contributions || []).map(c =>
+    `<div class="evidence-card">
+      <div class="ev-rsid">${c.rsid}</div>
+      <div class="ev-detail">Risk allele: <strong>${c.riskAllele}</strong> · Score contribution: <span style="font-family:var(--mono)">${(c.contribution >= 0 ? '+' : '') + c.contribution.toFixed(3)}</span></div>
+      <span class="ev-badge">GWAS-confirmed</span>
+    </div>`
+  ).join('') || '<p class="t-small" style="padding:8px 0">No variant data available.</p>';
+
+  return `
+  <div class="drc ${expanded ? 'open' : ''}" id="drc-${d}" data-disease="${r.disease}">
+    <div class="drc-header" onclick="toggleCard('${d}','${r.disease}')">
+      <div class="drc-icon" style="background:${icon.bg}">${icon.emoji}</div>
+      <div class="drc-info">
+        <div class="drc-name">${name}</div>
+        <div class="drc-sub">${pct}th percentile · ${conf.charAt(0).toUpperCase()+conf.slice(1)} confidence</div>
+      </div>
+      <div class="drc-tier ${tier}">${tier.toUpperCase()}</div>
+      <svg class="drc-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="drc-body">
+      <div class="pct-bar mt-14">
+        <div class="pct-fill fill-${tier}" id="pct-fill-${d}" style="width:0%"></div>
+      </div>
+      <div class="pct-labels"><span>Lower risk</span><span>Average</span><span>Higher risk</span></div>
+      <div class="tabs" id="tabs-${d}">
+        <button class="tab active" onclick="switchDiseaseTab('${d}','narrative',this)">Analysis</button>
+        <button class="tab" onclick="switchDiseaseTab('${d}','lifestyle',this)">Lifestyle</button>
+        <button class="tab" onclick="switchDiseaseTab('${d}','evidence',this)">Evidence</button>
+      </div>
+      <div id="tab-${d}-narrative" class="tab-content active">
+        <div class="narrative">${r.narrative || '<p>Analysis complete.</p>'}</div>
+      </div>
+      <div id="tab-${d}-lifestyle" class="tab-content">
+        <div class="lifestyle-list mt-4">${lifestyleHTML}</div>
+      </div>
+      <div id="tab-${d}-evidence" class="tab-content">
+        <p class="t-small mb-12 mt-4">Variants matched against the NHGRI-EBI GWAS Catalog. Each contribution = log(OR) × your allele count.</p>
+        <div class="evidence-list">${evidenceHTML}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCard(d, disease) {
+  const card = document.getElementById(`drc-${d}`);
+  const wasOpen = card.classList.contains('open');
+
+  document.querySelectorAll('.drc').forEach(c => c.classList.remove('open'));
+
+  if (!wasOpen) {
+    card.classList.add('open');
+    state.activeDisease = disease;
+    const r = state.allResults.find(x => x.disease === disease);
+    if (r) {
+      updateChat(r);
+      setTimeout(() => triggerBarAnimation(r), 80);
+    }
+  }
+}
+
+function triggerBarAnimation(r) {
+  const d = DISEASE_SHORT[r.disease] || r.disease;
+  const fill = document.getElementById(`pct-fill-${d}`);
+  if (fill) fill.style.width = (r.riskInterpretation?.percentileApprox || 50) + '%';
+}
+
+function switchDiseaseTab(d, name, btn) {
+  const card = document.getElementById(`drc-${d}`);
+  card.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  card.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${d}-${name}`).classList.add('active');
+}
+
 // ─────────────────────────── TABS ───────────────────────────
 function switchTab(name, btn) {
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
 }
 
 // ─────────────────────────── CHAT ───────────────────────────
 const RESPONSES = {
   type2_diabetes:[
     {k:['mean','explain','what does','understand','percentile','score','result','tell me'],
-     t:`Your score puts you at the 65th percentile for Type 2 Diabetes genetic risk — roughly 65% of people carry lower predisposition than you. That sounds significant, but here's the crucial context: genetics explains only 30–40% of T2D risk. The remaining 60–70% is your lifestyle, diet, sleep, and environment — all things you can actively influence.\n\nThink of this as an early-warning signal, not a verdict. You now know to take prevention seriously at a time when prevention genuinely works.`},
-    {k:['do','reduce','prevent','lifestyle','exercise','diet','should i','action','help','change'],
-     t:`T2D is one of the most preventable diseases we know of. The Diabetes Prevention Program found that modest lifestyle changes reduce incidence by 58% — more than metformin.\n\nThe three highest-impact changes: (1) 150 min/week of moderate walking — no gym needed; (2) Reducing refined carbohydrates and sugary drinks; (3) A 5–7% weight reduction if applicable — clinically meaningful even without reaching a "goal weight."\n\nThese aren't minor tweaks. They're the difference between a genetic predisposition becoming actual diabetes, or staying a predisposition.`},
-    {k:['accurate','reliable','certain','trust','limitation','how good','how reliable'],
-     t:`Polygenic risk scores are real science — not astrology with better marketing.\n\nThey sum the effect sizes of many variants that large genome-wide studies have linked to T2D. That said, they have real limits: they capture 30–40% of T2D genetic heritability; they perform better in European-ancestry populations due to study representation bias; and they know nothing about your actual diet, activity level, or medical history.\n\nTreat this as a well-informed starting point — one piece of evidence in a larger conversation with your doctor, not a standalone prognosis.`},
-    {k:['doctor','medical','physician','see a','tell my','should i see'],
-     t:`Definitely worth raising with your doctor at your next visit — especially when discussing routine bloodwork. A fasting glucose or HbA1c test every few years is standard for anyone with above-average genetic risk.\n\nYour doctor can combine this genetic information with family history, BMI, blood pressure, and activity levels for a much more complete picture. Genetic data works best as one input in a broader clinical conversation.`},
-    {k:['tcf7l2','gene','rs7903146','rs12255372','variant','snp','what is rs','what gene'],
-     t:`TCF7L2 (Transcription Factor 7-Like 2) is the strongest known genetic risk factor for Type 2 Diabetes — and its mechanism is fascinating.\n\nIt's a transcription factor that regulates the Wnt signaling pathway in pancreatic beta cells: the cells that produce insulin. Variants at rs7903146 sit in an intronic region of TCF7L2 and alter gene expression, slightly impairing how well beta cells respond to glucose signals. The TC genotype (one risk copy) produces a partial effect — reduced beta cell sensitivity under high-carbohydrate load, but not severe impairment. This has been replicated in over 100 independent studies across hundreds of thousands of participants.`},
-    {k:['worry','scared','worried','concerned','bad','serious','dangerous','how bad'],
-     t:`A moderate result is useful information — not a reason to panic.\n\nRealistic picture: most people with moderate T2D genetic risk who maintain reasonably healthy habits never develop diabetes. The 65th percentile is above average — not in the high-risk tail where genetic effects become more concerning.\n\nYou're learning this while you still have decades to act on it. That's exactly what genetic risk analysis is for: informing better choices earlier, not creating anxiety.`},
+     t:`Your score puts you at the 65th percentile for Type 2 Diabetes genetic risk — roughly 65% of people carry lower predisposition than you. That sounds significant, but genetics explains only 30–40% of T2D risk. The remaining 60–70% is your lifestyle, diet, sleep, and environment — all things you can actively influence.\n\nThink of this as an early-warning signal, not a verdict.`},
+    {k:['do','reduce','prevent','lifestyle','exercise','diet','should i','action','help'],
+     t:`T2D is one of the most preventable diseases we know of. The Diabetes Prevention Program found modest lifestyle changes reduce incidence by 58% — more than metformin.\n\n(1) 150 min/week of moderate walking; (2) Reduce refined carbohydrates and sugary drinks; (3) 5–7% weight reduction if applicable.\n\nThese aren't minor tweaks. They're the difference between a genetic predisposition staying a predisposition, or becoming actual diabetes.`},
+    {k:['accurate','reliable','certain','trust','limitation'],
+     t:`Polygenic risk scores are real science. They sum the effect sizes of many variants linked to T2D in large genome-wide studies. Real limits: they capture 30–40% of T2D genetic heritability and perform better in European-ancestry populations due to study representation bias.\n\nTreat this as a well-informed starting point — one piece of evidence in a larger conversation with your doctor.`},
+    {k:['doctor','medical','physician','see a','tell my'],
+     t:`Worth raising with your doctor at your next visit. A fasting glucose or HbA1c test every few years is standard for anyone with above-average genetic risk.\n\nYour doctor can combine this with family history, BMI, blood pressure, and activity levels for a much more complete picture.`},
+    {k:['tcf7l2','gene','rs7903146','variant','snp'],
+     t:`TCF7L2 is the strongest known genetic risk factor for Type 2 Diabetes. It's a transcription factor regulating the Wnt signaling pathway in pancreatic beta cells — the cells that produce insulin.\n\nVariants at rs7903146 alter gene expression, slightly impairing how beta cells respond to glucose signals. This has been replicated in over 100 independent studies across hundreds of thousands of participants.`},
+    {k:['worry','scared','worried','concerned','bad','serious'],
+     t:`A moderate result is useful information — not a reason to panic.\n\nMost people with moderate T2D genetic risk who maintain reasonably healthy habits never develop diabetes. The 65th percentile is above average — not in the high-risk tail where genetic effects accelerate.\n\nYou're learning this while you still have decades to act on it.`},
   ],
   coronary_artery_disease:[
     {k:['mean','explain','what does','understand','percentile','score','result','tell me'],
-     t:`Your score places you at the 78th percentile for Coronary Artery Disease genetic risk — substantially above average. The variants analyzed sit in the 9p21.3 region, sometimes called the "heart attack locus" because it's been identified in over 50 independent genome-wide studies.\n\nBeing at the 78th percentile doesn't mean heart disease is inevitable — but it does mean proactive cardiovascular management is genuinely worthwhile. Regular lipid panels and blood pressure checks make real sense for you.`},
-    {k:['do','reduce','prevent','lifestyle','exercise','diet','should i','action','help','change'],
-     t:`CAD responds more dramatically to lifestyle intervention than almost any other common disease.\n\nHighest-impact actions: (1) Smoking cessation — reduces CAD risk by up to 50% within 5 years, the single biggest intervention; (2) LDL cholesterol management through diet (reduce saturated fat, increase soluble fibre) and if needed, statin therapy — high-genetic-risk individuals benefit dramatically from primary prevention; (3) Mediterranean-pattern diet — the PREDIMED trial showed 30% fewer cardiovascular events; (4) Regular aerobic exercise — improves multiple risk factors simultaneously; (5) Blood pressure control.\n\nLarge cohort studies show high-CAD-genetic-risk individuals who maintain healthy lifestyles achieve similar event rates to genetically low-risk people.`},
-    {k:['accurate','reliable','certain','trust','limitation','how good'],
-     t:`The 9p21.3 locus is one of the most robustly replicated findings in all of medical genetics — identified in hundreds of studies across diverse populations. The genetic signal itself is very solid.\n\nThat said, the score doesn't know your LDL level, blood pressure, smoking history, or family history — all of which contribute substantially to CAD risk. It's most useful interpreted alongside those clinical measurements, not in isolation.`},
-    {k:['9p21','rs1333049','rs4977574','gene','variant','locus','cdkn'],
-     t:`The 9p21.3 locus sits near the CDKN2A and CDKN2B genes, which control smooth muscle cell proliferation in artery walls — the biological process underlying atherosclerotic plaque formation.\n\nWhat's fascinating about this locus is that it represents a completely separate pathway from LDL cholesterol. You can have perfect cholesterol and still carry elevated 9p21.3 risk — and vice versa. This is why having both a genetic profile AND a lipid panel gives a more complete picture than either alone.\n\nThe CC genotype at rs1333049 carries roughly 1.6× higher CAD odds vs. GG — a well-established, large effect for a polygenic trait.`},
-    {k:['worry','scared','worried','concerned','bad','serious','dangerous'],
-     t:`High CAD genetic risk is a meaningful signal — I won't minimize it. But here's the full picture.\n\nFirst: genetics explain about 30% of CAD risk. Lifestyle explains at least as much. Second: CAD has some of the best-studied risk-reduction strategies of any disease. Third: the most important immediate step is a lipid panel and blood pressure measurement — that turns this genetic information into something actionable.\n\nThe goal isn't to create alarm. It's to give you information early enough to use it.`},
+     t:`Your score places you at the 78th percentile for Coronary Artery Disease genetic risk — substantially above average. The variants sit in the 9p21.3 region, identified in over 50 independent genome-wide studies.\n\nThis doesn't mean heart disease is inevitable — but proactive cardiovascular management is genuinely worthwhile. Regular lipid panels and blood pressure checks make real sense for you.`},
+    {k:['do','reduce','prevent','lifestyle','exercise','diet','should i','action'],
+     t:`CAD responds more dramatically to lifestyle intervention than almost any other common disease.\n\n(1) Smoking cessation — reduces CAD risk by up to 50% within 5 years; (2) LDL management through diet and if needed, statin therapy; (3) Mediterranean-pattern diet — 30% fewer events in the PREDIMED trial; (4) Regular aerobic exercise; (5) Blood pressure control.\n\nLarge cohort studies show high-CAD-risk individuals who maintain healthy lifestyles achieve similar event rates to genetically low-risk people.`},
+    {k:['9p21','rs1333049','rs4977574','gene','locus','cdkn'],
+     t:`The 9p21.3 locus sits near CDKN2A and CDKN2B, which control smooth muscle cell proliferation in artery walls — the biological process underlying atherosclerotic plaque formation.\n\nThis is completely separate from LDL cholesterol pathways. You can have perfect cholesterol and still carry elevated 9p21.3 risk. The CC genotype at rs1333049 carries roughly 1.6× higher CAD odds vs. GG — a well-established effect.`},
+    {k:['worry','scared','concerned','bad','serious','dangerous'],
+     t:`High CAD genetic risk is a meaningful signal — I won't minimize it. But here's the full picture.\n\nGenetics explain about 30% of CAD risk. Lifestyle explains at least as much. CAD has some of the best-studied risk-reduction strategies of any disease. The most important immediate step: a lipid panel and blood pressure measurement. That turns this genetic information into something actionable.`},
+    {k:['doctor','medical','physician','see a','tell my','cardiologist'],
+     t:`Definitely worth discussing with your doctor. Ask for a fasting lipid panel and blood pressure check — both give you far more complete risk information alongside your genetic score.\n\nFor high genetic risk individuals, guidelines generally support discussing primary prevention statin therapy if LDL or overall cardiovascular risk is elevated.`},
   ],
   age_related_macular_degeneration:[
     {k:['mean','explain','what does','understand','percentile','score','result','tell me'],
-     t:`Your score places you at the 38th percentile for AMD genetic risk — below average. About 62% of people carry higher genetic predisposition than you.\n\nAMD causes deterioration of the macula (the central part of the retina), affecting central vision over time — typically in older age. Your particular variant combination at CFH and ARMS2 doesn't show the high-risk haplotype patterns associated with aggressive or early-onset AMD. This is genuinely reassuring.`},
-    {k:['do','reduce','prevent','lifestyle','smoking','exercise','what should','action'],
-     t:`Even with below-average genetic risk, AMD prevention centers on a few high-leverage interventions.\n\n(1) Not smoking is by far the most important — smokers have 2–4× higher AMD risk regardless of genetics; (2) AREDS2 supplements (vitamin C, E, zinc, lutein, zeaxanthin) reduce AMD progression risk by 25% in at-risk individuals — ask your ophthalmologist if they're appropriate for you; (3) UV-blocking sunglasses outdoors; (4) Blood pressure control — hypertension affects choroidal blood flow and AMD progression.\n\nGiven your below-average genetic baseline, these standard measures are likely sufficient.`},
-    {k:['cfh','arms2','htra1','gene','variant','rs1061170','rs10490924'],
-     t:`These two genes represent two distinct biological pathways to AMD.\n\nCFH (Complement Factor H) encodes a protein that regulates the complement immune system — essentially providing "inflammation brakes" in the retinal pigment epithelium. Protective CFH variants suppress the chronic low-grade complement activation that accumulates over decades and damages the macula. Your TC genotype at rs1061170 is intermediate — not the high-risk CC configuration.\n\nARMS2/HTRA1 affects a different pathway — HTRA1 is a serine protease involved in extracellular matrix regulation around Bruch's membrane. AMD driven by this locus tends to produce a different drusen pattern than CFH-driven AMD.`},
-    {k:['worry','scared','worried','concerned','bad','dangerous'],
-     t:`Your results are genuinely good news. Below-average genetic AMD risk is a reassuring starting point.\n\nAMD has higher genetic heritability than most common diseases (around 60–70%), so your genetic profile is particularly informative here. Below-average genetics combined with standard prevention — not smoking, UV protection, regular eye exams — puts you in a low-probability category for significant AMD.\n\nRegular ophthalmology visits every 1–2 years after 40 remain worthwhile, but there's no genetic flag here that warrants heightened concern.`},
+     t:`Your score places you at the 38th percentile for AMD genetic risk — below average. About 62% of people carry higher genetic predisposition than you.\n\nAMD causes deterioration of the central retina, typically in older age. Your particular variant combination at CFH and ARMS2 doesn't show the high-risk haplotypes associated with aggressive or early-onset AMD. This is genuinely reassuring.`},
+    {k:['do','reduce','prevent','lifestyle','smoking','what should','action'],
+     t:`Even with below-average genetic risk, AMD prevention centers on a few key interventions.\n\n(1) Not smoking is by far the most important — smokers have 2–4× higher AMD risk regardless of genetics; (2) AREDS2 supplements reduce AMD progression risk by 25% in at-risk individuals; (3) UV-blocking sunglasses; (4) Blood pressure control — hypertension affects choroidal blood flow and AMD progression.\n\nStandard measures are likely sufficient given your below-average genetic baseline.`},
+    {k:['cfh','arms2','htra1','gene','rs1061170','rs10490924'],
+     t:`CFH (Complement Factor H) regulates the complement immune system — essentially "inflammation brakes" in the retinal pigment epithelium. Protective CFH variants suppress the chronic low-grade complement activation that damages the macula over decades.\n\nARMS2/HTRA1 affects a different pathway — extracellular matrix regulation around Bruch's membrane. AMD driven by this locus tends to produce a different drusen pattern than CFH-driven AMD.`},
+    {k:['worry','scared','concerned','bad','dangerous'],
+     t:`Your results are genuinely good news. Below-average genetic AMD risk is a reassuring starting point.\n\nAMD has higher genetic heritability than most common diseases (~60–70%), so your genetic profile is particularly informative. Below-average genetics plus standard prevention — not smoking, UV protection, regular eye exams — puts you in a low-probability category.`},
   ],
 };
 
 const DEFAULT_MSG = {
-  type2_diabetes:`I can help you understand your Type 2 Diabetes results — what the variants mean, what prevention looks like, how to talk to your doctor, or how PRS works. What would you like to know?`,
-  coronary_artery_disease:`I can explain your Heart Disease results, what the 9p21.3 locus means, the most effective preventive steps, or what to discuss with your cardiologist. What would you like to know?`,
-  age_related_macular_degeneration:`I can explain your Macular Degeneration results, how CFH and ARMS2 work, what eye care steps make sense, or how AMD genetics compare to other conditions. What would you like to know?`,
+  type2_diabetes: `I can explain your Type 2 Diabetes results, what the variants mean, what prevention looks like, or how PRS works. What would you like to know?`,
+  coronary_artery_disease: `I can explain your Heart Disease results, what the 9p21.3 locus means, the most effective preventive steps, or what to discuss with your doctor. What would you like to know?`,
+  age_related_macular_degeneration: `I can explain your Macular Degeneration results, how CFH and ARMS2 work, what eye care steps make sense, or how AMD genetics work. What would you like to know?`,
 };
 
 const QR = {
-  type2_diabetes:['What does this mean?','What should I do?','How accurate is this?','Explain TCF7L2'],
-  coronary_artery_disease:['What does this mean?','What can I do?','Explain 9p21.3','Should I see a doctor?'],
-  age_related_macular_degeneration:['What does this mean?','How to prevent it?','What is CFH?','How worried should I be?'],
+  type2_diabetes: ['What does this mean?','What should I do?','How accurate is this?','Explain TCF7L2'],
+  coronary_artery_disease: ['What does this mean?','What can I do?','Explain 9p21.3','Should I see a doctor?'],
+  age_related_macular_degeneration: ['What does this mean?','How to prevent it?','What is CFH?','How worried should I be?'],
 };
+
+function updateChat(r) {
+  const name = DISEASE_LABELS[r.disease] || r.diseaseName || '';
+  document.getElementById('chat-header-name').textContent = `Ask about ${name}`;
+  document.getElementById('chat-header-sub').textContent = 'Tap a question or type your own';
+  setQuickReplies(r.disease);
+  initChat(r);
+}
 
 function setQuickReplies(disease) {
   document.getElementById('quick-replies').innerHTML =
-    (QR[disease]||QR.type2_diabetes).map(q=>
+    (QR[disease] || QR.type2_diabetes).map(q =>
       `<button class="qr" onclick="sendQuickReply(this)">${q}</button>`
     ).join('');
+  document.getElementById('quick-replies').style.display = '';
 }
 
 function initChat(r) {
   const tier = r?.riskInterpretation?.tier || 'moderate';
   const pct  = r?.riskInterpretation?.percentileApprox || 50;
   const lbl  = DISEASE_LABELS[r?.disease] || 'this condition';
-  const greeting = `Hi! I've just analyzed your genetic data for <strong>${lbl}</strong>. Your results show <strong>${tier} risk</strong> at the ${pct}th percentile.\n\nI can explain what this means for you, what the science says about prevention, or answer questions about the specific genes involved. What would you like to know?`;
+  const greeting = `I've analyzed your DNA for <strong>${lbl}</strong>. You show <strong>${tier} risk</strong> at the ${pct}th percentile. What would you like to know?`;
   document.getElementById('chat-messages').innerHTML = '';
   addMsg('ai', greeting);
 }
@@ -766,7 +806,7 @@ function addMsg(role, text) {
   const c = document.getElementById('chat-messages');
   const d = document.createElement('div');
   d.className = 'chat-msg ' + role;
-  d.innerHTML = `<div class="chat-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+  d.innerHTML = `<div class="chat-bubble">${text.replace(/\n/g, '<br>')}</div>`;
   c.appendChild(d);
   c.scrollTop = c.scrollHeight;
 }
@@ -784,7 +824,6 @@ function sendChatMsg(text) {
   document.getElementById('quick-replies').style.display = 'none';
   addMsg('user', text);
 
-  // Typing indicator
   const c = document.getElementById('chat-messages');
   const dots = document.createElement('div');
   dots.className = 'chat-msg ai'; dots.id = 'typing';
@@ -799,11 +838,11 @@ function sendChatMsg(text) {
   setTimeout(() => {
     document.getElementById('typing')?.remove();
     addMsg('ai', getResponse(text));
-  }, 700 + Math.random()*600);
+  }, 700 + Math.random() * 600);
 }
 
 function getResponse(text) {
-  const disease = state.results?.disease || 'type2_diabetes';
+  const disease = state.activeDisease || 'type2_diabetes';
   const pool = RESPONSES[disease] || RESPONSES.type2_diabetes;
   const lower = text.toLowerCase();
   for (const r of pool) {
