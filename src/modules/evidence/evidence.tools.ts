@@ -5,9 +5,17 @@ import {
   z,
 } from '@nitrostack/core';
 
-import { GWASCatalogService } from './gwas-catalog.service.js';
-import { PubMedService } from './pubmed.service.js';
-import { EvidenceFilterEngine } from './evidence-filter.engine.js';
+import {
+  GWASCatalogService,
+} from './gwas-catalog.service.js';
+
+import {
+  PubMedService,
+} from './pubmed.service.js';
+
+import {
+  EvidenceFilterEngine,
+} from './evidence-filter.engine.js';
 
 import {
   Disease,
@@ -15,69 +23,83 @@ import {
   FilterEvidenceResult,
 } from '../../types.js';
 
+
 const SUPPORTED_DISEASES = [
   'type2_diabetes',
   'coronary_artery_disease',
   'age_related_macular_degeneration',
 ] as const;
 
+
 const gwasService =
   new GWASCatalogService();
+
 
 const pubmedService =
   new PubMedService();
 
+
 const filterEngine =
   new EvidenceFilterEngine();
 
+
 export class EvidenceTools {
-  // ========================================================
+
+  // ============================================================
   // FETCH GWAS ASSOCIATIONS
-  // ========================================================
+  // ============================================================
 
   @Tool({
-    name: 'fetch_gwas_associations',
+
+    name:
+      'fetch_gwas_associations',
 
     description:
-      'Queries the NHGRI-EBI GWAS Catalog for published genetic associations for validated rsIDs and the selected disease. Returns effect estimates, p-values, study sample size, ancestry, study accession and PubMed ID. If the live API is unavailable, the GWAS service may return the project demo fallback records.',
+      'Queries the NHGRI-EBI GWAS Catalog for published genetic associations for validated rsIDs and the selected disease. Returns raw effect estimates, p-values, study sample size, ancestry, study accession and PubMed ID. Disease relevance is checked by the GWAS service before records reach evidence filtering. Project demo fallback records may be used if the live GWAS Catalog is unavailable or returns no disease-matched record for a supported demo SNP.',
 
-    inputSchema: z.object({
-      variants: z
-        .array(
-          z.object({
-            rsid: z
-              .string()
-              .describe(
-                'Input rsID, e.g. rs7903146'
-              ),
+    inputSchema:
+      z.object({
 
-            isValid: z.boolean(),
+        variants:
+          z.array(
 
-            normalizedRsid: z
-              .string()
-              .describe(
-                'Validated normalized rsID'
-              ),
-          })
-        )
-        .describe(
-          'Validated variant list from parse_variants'
-        ),
+            z.object({
 
-      disease: z
-        .enum(SUPPORTED_DISEASES)
-        .describe(
-          'Target disease'
-        ),
-    }),
+              rsid:
+                z.string(),
+
+              isValid:
+                z.boolean(),
+
+              normalizedRsid:
+                z.string(),
+            })
+
+          ).describe(
+            'Validated variant list returned by parse_variants'
+          ),
+
+        disease:
+          z.enum(
+            SUPPORTED_DISEASES
+          ),
+      }),
+
 
     examples: {
+
       request: {
+
         variants: [
           {
-            rsid: 'rs7903146',
-            isValid: true,
-            normalizedRsid: 'rs7903146',
+            rsid:
+              'rs7903146',
+
+            isValid:
+              true,
+
+            normalizedRsid:
+              'rs7903146',
           },
         ],
 
@@ -85,20 +107,34 @@ export class EvidenceTools {
           'type2_diabetes',
       },
 
+
       response: {
+
         disease:
           'type2_diabetes',
 
-        associationCount: 1,
+        associationCount:
+          1,
 
         associations: [
           {
-            rsid: 'rs7903146',
-            riskAllele: 'T',
+            rsid:
+              'rs7903146',
 
-            pvalue: 1.5e-25,
+            riskAllele:
+              'T',
 
-            orPerCopyNum: 1.37,
+            pvalue:
+              1.5e-25,
+
+            pvalueMantissa:
+              1.5,
+
+            pvalueExponent:
+              -25,
+
+            orPerCopyNum:
+              1.37,
 
             studyAccession:
               'GCST000028',
@@ -121,32 +157,51 @@ export class EvidenceTools {
     },
   })
 
+
   async fetchGwasAssociations(
     input: any,
     ctx: ExecutionContext
   ) {
+
     const validVariants =
-      (input.variants ?? []).filter(
+      (
+        input.variants ??
+        []
+      ).filter(
         (variant: any) =>
-          variant.isValid
+          variant?.isValid &&
+          variant?.normalizedRsid
       );
+
 
     ctx.logger.info(
       'Fetching GWAS associations',
       {
-        disease: input.disease,
+
+        disease:
+          input.disease,
+
         variantCount:
           validVariants.length,
       }
     );
 
+
     const allAssociations:
       GWASAssociation[] = [];
 
-    const errors: string[] = [];
 
-    for (const variant of validVariants) {
+    const errors:
+      string[] = [];
+
+
+    for (
+      const variant of
+      validVariants
+    ) {
+
       try {
+
         const associations =
           await gwasService
             .getAssociationsForVariant(
@@ -154,29 +209,42 @@ export class EvidenceTools {
               input.disease as Disease
             );
 
+
         allAssociations.push(
           ...associations
         );
-      } catch (error: any) {
+
+      } catch (
+        error: any
+      ) {
+
         const message =
           error?.message ??
           String(error);
+
 
         errors.push(
           `${variant.rsid}: ${message}`
         );
 
+
         ctx.logger.warn(
           'Failed to fetch GWAS associations for variant',
           {
-            rsid: variant.rsid,
-            error: message,
+
+            rsid:
+              variant.rsid,
+
+            error:
+              message,
           }
         );
       }
     }
 
+
     return {
+
       disease:
         input.disease,
 
@@ -194,38 +262,53 @@ export class EvidenceTools {
     };
   }
 
-  // ========================================================
+
+  // ============================================================
   // FILTER EVIDENCE
-  // ========================================================
+  // ============================================================
 
   @Tool({
-    name: 'filter_evidence',
+
+    name:
+      'filter_evidence',
 
     description:
-      'Evaluates candidate GWAS associations before PRS calculation. Applies genome-wide significance, PolyRisk MVP sample-size QC, effect-allele validation and quantitative effect-size validation. For multiple qualifying studies of the same rsID, selects one best-supported association to prevent double counting. Ancestry mismatch is reported as a transferability caution rather than automatically treating the study as invalid.',
+      'Evaluates disease-relevant GWAS associations before PRS calculation. Applies genome-wide significance, PolyRisk MVP sample-size QC, effect-allele validation and quantitative effect-size validation. When multiple qualifying associations exist for the same rsID, one best-supported estimate is retained to prevent double counting. Ancestry mismatch is reported as a transferability caution rather than automatically excluding otherwise valid evidence.',
 
-    taskSupport: 'optional',
+    taskSupport:
+      'optional',
 
-    inputSchema: z.object({
-      associations: z
-        .array(z.any())
-        .describe(
-          'GWASAssociation records returned by fetch_gwas_associations'
-        ),
+    inputSchema:
+      z.object({
 
-      disease: z
-        .enum(SUPPORTED_DISEASES),
+        associations:
+          z
+            .array(
+              z.any()
+            )
+            .describe(
+              'GWASAssociation records returned by fetch_gwas_associations'
+            ),
 
-      userAncestry: z
-        .string()
-        .optional()
-        .describe(
-          'Optional target ancestry, e.g. European, East Asian, South Asian, African, Hispanic or Mixed'
-        ),
-    }),
+        disease:
+          z.enum(
+            SUPPORTED_DISEASES
+          ),
+
+        userAncestry:
+          z
+            .string()
+            .optional()
+            .describe(
+              'Optional target ancestry, for example European, East Asian, South Asian, African, Hispanic or Mixed'
+            ),
+      }),
+
 
     examples: {
+
       request: {
+
         associations: [
           {
             rsid:
@@ -256,7 +339,7 @@ export class EvidenceTools {
               null,
 
             riskFrequency:
-              0.3,
+              0.30,
 
             studyAccession:
               'GCST000028',
@@ -289,21 +372,27 @@ export class EvidenceTools {
           'European',
       },
 
+
       response: {
+
         disease:
           'type2_diabetes',
 
-        total: 1,
+        total:
+          1,
 
-        includedCount: 1,
+        includedCount:
+          1,
 
-        excludedCount: 0,
+        excludedCount:
+          0,
 
         ancestryNote:
           'Ancestry context applied: European',
 
         allDecisions: [
           {
+
             rsid:
               'rs7903146',
 
@@ -324,49 +413,65 @@ export class EvidenceTools {
     },
   })
 
-  @Widget('evidence-filter')
+
+  @Widget(
+    'evidence-filter'
+  )
+
 
   async filterEvidence(
     input: any,
     ctx: ExecutionContext
   ) {
+
     ctx.logger.info(
       'Running evidence filter',
       {
+
         disease:
           input.disease,
 
         candidateCount:
-          input.associations?.length ??
-          0,
+          input.associations
+            ?.length ?? 0,
       }
     );
 
+
     const associations:
       GWASAssociation[] =
-      input.associations ?? [];
+      input.associations ??
+      [];
+
 
     const userAncestry:
       string | null =
-      input.userAncestry ?? null;
+      input.userAncestry ??
+      null;
 
-    // -------------------------------------------------------
-    // OPTIONAL ANCESTRY REQUEST
-    // -------------------------------------------------------
+
+    // ==========================================================
+    // DETECT USEFUL ANCESTRY DATA
+    // ==========================================================
 
     const ancestryDataExists =
       associations.some(
         (association) => {
+
           const groups =
-            association.ancestralGroups ??
+            association
+              .ancestralGroups ??
             [];
+
 
           return groups.some(
             (group) => {
+
               const normalized =
                 group
                   .trim()
                   .toLowerCase();
+
 
               return ![
                 '',
@@ -381,34 +486,42 @@ export class EvidenceTools {
         }
       );
 
+
+    // ==========================================================
+    // OPTIONAL ANCESTRY REQUEST
+    // ==========================================================
+
     /**
-     * We only ASK for ancestry when:
+     * Ancestry is supplementary context.
      *
-     * 1. useful ancestry information exists,
-     * 2. the user hasn't already supplied ancestry,
-     * 3. NitroStack task context is available.
+     * It does NOT block evidence filtering.
      *
-     * The filter can still proceed without it.
+     * If the user supplies ancestry, the engine reports whether
+     * study transferability may be limited.
      */
+
     if (
       ancestryDataExists &&
       !userAncestry &&
       ctx.task
     ) {
+
       ctx.task.requestInput(
         'Study ancestry information is available. If you want an ancestry-transferability check, provide your ancestry background (for example European, East Asian, South Asian, African, Hispanic or Mixed). You may skip this and continue without ancestry matching.'
       );
     }
 
-    // -------------------------------------------------------
-    // RUN CORE FILTER
-    // -------------------------------------------------------
+
+    // ==========================================================
+    // CORE FILTER
+    // ==========================================================
 
     const decisions =
       filterEngine.filter(
         associations,
         userAncestry
       );
+
 
     const included =
       decisions.filter(
@@ -417,6 +530,7 @@ export class EvidenceTools {
           'included'
       );
 
+
     const excluded =
       decisions.filter(
         (decision) =>
@@ -424,8 +538,10 @@ export class EvidenceTools {
           'excluded'
       );
 
+
     const result:
       FilterEvidenceResult = {
+
         disease:
           input.disease as Disease,
 
@@ -447,9 +563,11 @@ export class EvidenceTools {
           decisions,
       };
 
+
     ctx.logger.info(
       'Evidence filtering complete',
       {
+
         included:
           included.length,
 
@@ -458,38 +576,53 @@ export class EvidenceTools {
       }
     );
 
+
     return result;
   }
 
-  // ========================================================
+
+  // ============================================================
   // FETCH CITATIONS
-  // ========================================================
+  // ============================================================
 
   @Tool({
-    name: 'fetch_citations',
+
+    name:
+      'fetch_citations',
 
     description:
       'Fetches citation metadata for included GWAS studies using their PubMed IDs.',
 
-    inputSchema: z.object({
-      pubmedIds: z
-        .array(z.string())
-        .describe(
-          'PubMed IDs from included evidence decisions'
-        ),
-    }),
+    inputSchema:
+      z.object({
+
+        pubmedIds:
+          z
+            .array(
+              z.string()
+            )
+            .describe(
+              'PubMed IDs from included evidence decisions'
+            ),
+      }),
+
 
     examples: {
+
       request: {
+
         pubmedIds: [
           '17293876',
           '17460697',
         ],
       },
 
+
       response: {
+
         citations: [
           {
+
             pubmedId:
               '17293876',
 
@@ -513,29 +646,70 @@ export class EvidenceTools {
     },
   })
 
+
   async fetchCitations(
     input: any,
     ctx: ExecutionContext
   ) {
+
+    /**
+     * Remove:
+     * - empty IDs
+     * - duplicates
+     */
+
     const ids =
-      (input.pubmedIds ?? [])
-        .filter(
-          (id: string) =>
-            Boolean(id)
-        );
+      Array.from(
+        new Set<string>(
+          (
+            input.pubmedIds ??
+            []
+          )
+            .map(
+              (id: any) =>
+                String(id).trim()
+            )
+            .filter(
+              (id: string) =>
+                id.length > 0
+            )
+        )
+      );
+
 
     ctx.logger.info(
       'Fetching PubMed citations',
       {
-        count: ids.length,
+        count:
+          ids.length,
       }
     );
 
+
+    if (
+      ids.length === 0
+    ) {
+
+      return {
+
+        citations:
+          [],
+
+        dataSource:
+          'NCBI PubMed E-utilities',
+      };
+    }
+
+
     const citations =
       await pubmedService
-        .getCitations(ids);
+        .getCitations(
+          ids
+        );
+
 
     return {
+
       citations,
 
       dataSource:
