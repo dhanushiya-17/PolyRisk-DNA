@@ -1,7 +1,7 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import { RiskInterpreterService } from './risk-interpreter.service.js';
-import { PRSResult, FilterEvidenceResult } from '../../types.js';
+import { FilterEvidenceResult } from '../../types.js';
 
 describe('RiskInterpreterService', () => {
   let service: RiskInterpreterService;
@@ -81,7 +81,7 @@ describe('RiskInterpreterService', () => {
   });
 
   test('should interpret a moderate risk score correctly', () => {
-    const prsResult: PRSResult = {
+    const prsResult: any = {
       disease: 'type2_diabetes',
       totalScore: 0.80,
       contributions: [],
@@ -93,7 +93,7 @@ describe('RiskInterpreterService', () => {
       total: 5,
       includedCount: 5,
       excludedCount: 0,
-      ancestryNote: null,
+      ancestryNote: '',
       allDecisions: [],
     };
 
@@ -107,7 +107,7 @@ describe('RiskInterpreterService', () => {
   });
 
   test('should classify high risk scores with zScore > 0.5', () => {
-    const prsResult: PRSResult = {
+    const prsResult: any = {
       disease: 'type2_diabetes',
       totalScore: 1.20,
       contributions: [],

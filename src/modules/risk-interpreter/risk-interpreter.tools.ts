@@ -1,6 +1,7 @@
 import { ToolDecorator as Tool, ExecutionContext, z } from '@nitrostack/core';
 import { RiskInterpreterService } from './risk-interpreter.service.js';
-import { Disease, RiskTier } from '../../types.js';
+import { Disease } from '../../types.js';
+import { RiskTier } from './risk-interpreter.service.js';
 
 const SUPPORTED_DISEASES = ['type2_diabetes', 'coronary_artery_disease', 'age_related_macular_degeneration'] as const;
 

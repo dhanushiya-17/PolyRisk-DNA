@@ -1,5 +1,13 @@
 import { Injectable } from '@nitrostack/core';
-import { Citation } from '../../types.js';
+
+export interface Citation {
+  pubmedId: string;
+  title: string;
+  authors: string;
+  journal: string;
+  year: string;
+  url: string;
+}
 
 const EUTILS_BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
 

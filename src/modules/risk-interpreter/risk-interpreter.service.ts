@@ -1,5 +1,18 @@
 import { Injectable } from '@nitrostack/core';
-import { Disease, RiskTier, RiskInterpretation, PRSResult, FilterEvidenceResult } from '../../types.js';
+import { Disease, FilterEvidenceResult } from '../../types.js';
+
+export type RiskTier = 'low' | 'moderate' | 'high';
+
+export interface RiskInterpretation {
+  disease: Disease;
+  tier: RiskTier;
+  prsScore: number;
+  zScore: number;
+  percentileApprox: number;
+  confidenceLevel: 'low' | 'moderate' | 'high';
+  confidenceReason: string;
+  description: string;
+}
 
 export interface PopulationParameters {
   mean: number;
@@ -40,7 +53,7 @@ export class RiskInterpreterService {
    * Converts a raw PRS score and evidence filter result into a RiskInterpretation structure.
    */
   public interpret(
-    prsResult: PRSResult,
+    prsResult: any,
     filterResult?: FilterEvidenceResult,
     topLevelDisease?: Disease
   ): RiskInterpretation {
@@ -108,7 +121,7 @@ export class RiskInterpreterService {
       case 'high':
         return `High Tier for ${name}: Your score falls in the upper percentile of population distribution. Elevated genetic predisposition warrants proactive lifestyle management.`;
       default:
-        return `Risk assessment complete for ${name}.`;
+        return `Risk tier for ${name}: ${tier}`;
     }
   }
 }

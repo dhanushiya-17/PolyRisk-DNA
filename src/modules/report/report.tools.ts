@@ -1,14 +1,26 @@
 import { ToolDecorator as Tool, Widget, ExecutionContext, z } from '@nitrostack/core';
-import {
-  Disease,
-  RiskTier,
-  RiskInterpretation,
-  LifestyleContext,
-  PolyRiskReport,
-  PRSResult,
-  FilterEvidenceResult,
-  Citation,
-} from '../../types.js';
+import { Disease, FilterEvidenceResult } from '../../types.js';
+import { Citation } from '../citations/citations.service.js';
+import { RiskTier, RiskInterpretation } from '../risk-interpreter/risk-interpreter.service.js';
+
+export interface LifestyleContext {
+  disease: Disease;
+  factors: Array<{ category: string; description: string }>;
+  source: string;
+}
+
+export interface PolyRiskReport {
+  disease: Disease;
+  diseaseName: string;
+  narrative?: string;
+  riskInterpretation: RiskInterpretation;
+  prsResult: any;
+  filterResult?: FilterEvidenceResult;
+  citations: Citation[];
+  lifestyleContext?: LifestyleContext;
+  disclaimer: string;
+  generatedAt: string;
+}
 
 const SUPPORTED_DISEASES = ['type2_diabetes', 'coronary_artery_disease', 'age_related_macular_degeneration'] as const;
 
@@ -54,79 +66,6 @@ const LIFESTYLE_FACTORS: Record<Disease, Array<{ category: string; description: 
 };
 
 export class ReportTools {
-  @Tool({
-    name: 'interpret_risk',
-    description:
-      'Converts a raw PRS score into a risk tier (low / moderate / high relative to population average) with an explicit confidence level. Confidence is based on how many variants were included, how well-studied the disease\'s genetic architecture is, and filtering outcomes. Never states a specific disease probability as certain fact — frames everything as relative risk tier with stated uncertainty.',
-    inputSchema: z.object({
-      prsResult: z.any().describe('Output of calculate_prs'),
-      filterResult: z.any().describe('Output of filter_evidence (for confidence calculation)'),
-    }),
-    examples: {
-      request: {
-        prsResult: { disease: 'type2_diabetes', totalScore: 0.95, variantsIncluded: 5, genotypeAssumed: true },
-        filterResult: { total: 6, includedCount: 5, excludedCount: 1 },
-      },
-      response: {
-        tier: 'moderate', zScore: 0.43, percentileApprox: 67,
-        confidenceLevel: 'moderate', description: 'Your PRS is modestly above the population average...',
-      },
-    },
-  })
-  async interpretRisk(input: any, ctx: ExecutionContext) {
-    const prsResult: PRSResult = input.prsResult;
-    const filterResult: FilterEvidenceResult = input.filterResult;
-    const disease = prsResult.disease as Disease;
-    const params = PRS_POPULATION_PARAMS[disease];
-
-    const zScore = params.sd > 0
-      ? (prsResult.totalScore - params.mean) / params.sd
-      : 0;
-
-    const tier: RiskTier = zScore < -0.5 ? 'low' : zScore > 0.5 ? 'high' : 'moderate';
-    const percentileApprox = Math.round((0.5 + 0.5 * Math.tanh(zScore * 0.8)) * 100);
-
-    // Confidence: based on variants included and filtering results
-    const inclusionRate = filterResult.total > 0
-      ? filterResult.includedCount / filterResult.total
-      : 0;
-    const variantsIncluded = prsResult.variantsIncluded;
-
-    let confidenceLevel: 'low' | 'moderate' | 'high';
-    let confidenceReason: string;
-
-    if (variantsIncluded < 2 || inclusionRate < 0.4) {
-      confidenceLevel = 'low';
-      confidenceReason = `Only ${variantsIncluded} variants passed evidence filtering (${filterResult.includedCount}/${filterResult.total} total). With so few included variants, the score may not capture the full genetic picture.`;
-    } else if (variantsIncluded < 4 || inclusionRate < 0.7 || prsResult.genotypeAssumed) {
-      confidenceLevel = 'moderate';
-      confidenceReason = `${variantsIncluded} variants included (${filterResult.includedCount}/${filterResult.total} passed filtering)${prsResult.genotypeAssumed ? '; genotype assumed as heterozygous (1 allele) since actual genotype was not provided' : ''}. Score is informative but not comprehensive.`;
-    } else {
-      confidenceLevel = 'high';
-      confidenceReason = `${variantsIncluded} variants included with high filtering pass rate (${filterResult.includedCount}/${filterResult.total}), all with real genotype data and GWS-significant evidence.`;
-    }
-
-    const diseaseName = DISEASE_LABELS[disease];
-    const tierDescriptions: Record<RiskTier, string> = {
-      low: `Your PRS is below the population average for ${diseaseName}. This suggests a lower-than-average genetic predisposition based on the variants analyzed. It does not mean no risk — lifestyle, environment, and variants not captured here all contribute.`,
-      moderate: `Your PRS is near the population average for ${diseaseName}. The genetic variants analyzed do not suggest substantially elevated or reduced genetic predisposition compared to the general population. This is the most common result.`,
-      high: `Your PRS is above the population average for ${diseaseName}. This suggests a higher-than-average genetic predisposition based on the variants analyzed. This is not a diagnosis, and many people with elevated PRS never develop the condition. Lifestyle modifications can substantially modify actual risk.`,
-    };
-
-    const interpretation: RiskInterpretation = {
-      disease,
-      tier,
-      prsScore: prsResult.totalScore,
-      zScore: Math.round(zScore * 100) / 100,
-      percentileApprox,
-      confidenceLevel,
-      confidenceReason,
-      description: tierDescriptions[tier],
-    };
-
-    ctx.logger.info('Risk interpretation complete', { disease, tier, zScore, confidenceLevel });
-    return interpretation;
-  }
 
   @Tool({
     name: 'get_lifestyle_context',
@@ -189,7 +128,7 @@ export class ReportTools {
 
     const report: PolyRiskReport = {
       disease,
-      diseaseName: DISEASE_LABELS[disease] ?? disease,
+      diseaseName: DISEASE_LABELS[disease as Disease] ?? disease,
       riskInterpretation,
       prsResult: input.prsResult,
       filterResult: input.filterResult,
