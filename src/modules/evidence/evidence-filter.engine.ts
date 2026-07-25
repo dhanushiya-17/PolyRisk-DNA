@@ -1,14 +1,8 @@
 import { Injectable } from '@nitrostack/core';
-import { GWASAssociation, FilterDecision, EffectType, Disease } from '../../types.js';
+import { GWASAssociation, FilterDecision, EffectType } from '../../types.js';
 
 const GWS_PVALUE = 5e-8;
 const MIN_SAMPLE_SIZE = 1000;
-
-const DISEASE_TRAIT_KEYWORDS: Record<Disease, string[]> = {
-  T2D: ['type 2 diabetes', 'type ii diabetes'],
-  CAD: ['coronary artery', 'coronary heart disease', 'myocardial infarction'],
-  AMD: ['macular degeneration'],
-};
 
 interface BasicQualityResult {
   valid: boolean;
@@ -17,12 +11,14 @@ interface BasicQualityResult {
 
 @Injectable()
 export class EvidenceFilterEngine {
-  filter(
-    associations: GWASAssociation[],
-    disease: Disease,
-    userAncestry: string | null
-  ): FilterDecision[] {
-    const targetTraitKeywords = DISEASE_TRAIT_KEYWORDS[disease];
+  /**
+   * Trait/disease relevance is already enforced upstream by
+   * GWASCatalogService.matchesDisease() before associations reach
+   * this engine — so this engine does NOT re-check trait relevance.
+   * It focuses purely on evidence quality: significance, sample
+   * size, valid effect estimates, and best-per-SNP selection.
+   */
+  filter(associations: GWASAssociation[], userAncestry: string | null): FilterDecision[] {
     const byRsid = new Map<string, GWASAssociation[]>();
 
     for (const association of associations) {
@@ -36,39 +32,36 @@ export class EvidenceFilterEngine {
     for (const [, group] of byRsid.entries()) {
       const evaluated = group.map((association) => ({
         association,
-        pvalue: this.resolvePvalue(association),
-        quality: this.evaluateBasicQuality(association, targetTraitKeywords),
+        quality: this.evaluateBasicQuality(association),
       }));
 
       const validCandidates = evaluated.filter((item) => item.quality.valid);
 
       if (validCandidates.length === 0) {
         for (const item of evaluated) {
-          decisions.push(this.buildExcludedDecision(item.association, item.pvalue, item.quality.reason));
+          decisions.push(this.buildExcludedDecision(item.association, item.quality.reason));
         }
         continue;
       }
 
       const ranked = [...validCandidates].sort((a, b) => {
-        const sizeDiff = this.getSampleSize(b.association) - this.getSampleSize(a.association);
+        const sizeDiff = b.association.totalSampleSize - a.association.totalSampleSize;
         if (sizeDiff !== 0) return sizeDiff;
-        return a.pvalue - b.pvalue;
+        return a.association.pvalue - b.association.pvalue;
       });
 
-      const best = ranked[0];
-      decisions.push(this.buildIncludedDecision(best.association, best.pvalue, userAncestry));
+      const best = ranked[0].association;
+      decisions.push(this.buildIncludedDecision(best, userAncestry));
 
       for (const item of evaluated) {
-        if (item.association === best.association) continue;
+        if (item.association === best) continue;
 
         if (!item.quality.valid) {
-          decisions.push(this.buildExcludedDecision(item.association, item.pvalue, item.quality.reason));
+          decisions.push(this.buildExcludedDecision(item.association, item.quality.reason));
           continue;
         }
 
-        decisions.push(
-          this.buildSupersededDecision(item.association, item.pvalue, best.association.risk_allele)
-        );
+        decisions.push(this.buildSupersededDecision(item.association, best.riskAllele));
       }
     }
 
@@ -78,31 +71,20 @@ export class EvidenceFilterEngine {
     });
   }
 
-  private evaluateBasicQuality(
-    assoc: GWASAssociation,
-    targetTraitKeywords: string[]
-  ): BasicQualityResult {
-    if (!this.matchesTargetTrait(assoc.trait, targetTraitKeywords)) {
-      return {
-        valid: false,
-        reason: `excluded: trait (${assoc.trait?.join(', ') || 'unspecified'}) is not relevant to the target condition`,
-      };
-    }
-
-    const pvalue = this.resolvePvalue(assoc);
-    if (!Number.isFinite(pvalue) || pvalue < 0 || pvalue > 1) {
+  private evaluateBasicQuality(assoc: GWASAssociation): BasicQualityResult {
+    if (!Number.isFinite(assoc.pvalue) || assoc.pvalue < 0 || assoc.pvalue > 1) {
       return { valid: false, reason: 'excluded: association has a missing or invalid p-value' };
     }
 
-    if (pvalue >= GWS_PVALUE) {
+    if (assoc.pvalue >= GWS_PVALUE) {
       return {
         valid: false,
-        reason: `excluded: does not meet genome-wide significance threshold (p=${this.formatPvalue(assoc, pvalue)}, required p < 5×10⁻⁸)`,
+        reason: `excluded: does not meet genome-wide significance threshold (p=${this.formatPvalue(assoc)}, required p < 5×10⁻⁸)`,
       };
     }
 
-    if (!this.hasValidRiskAllele(assoc.risk_allele)) {
-      return { valid: false, reason: 'excluded: effect/risk allele is missing or in an unparseable format' };
+    if (!this.hasValidRiskAllele(assoc.riskAllele)) {
+      return { valid: false, reason: 'excluded: effect/risk allele is missing or invalid' };
     }
 
     const effectSize = this.getEffectSize(assoc);
@@ -113,122 +95,99 @@ export class EvidenceFilterEngine {
       return { valid: false, reason: 'excluded: odds ratio is invalid; OR must be greater than zero' };
     }
 
-    const sampleSize = this.getSampleSize(assoc);
-    if (sampleSize < MIN_SAMPLE_SIZE) {
+    if (assoc.totalSampleSize < MIN_SAMPLE_SIZE) {
       return {
         valid: false,
-        reason: `excluded: study sample size (n≈${sampleSize}) is below PolyRisk's MVP minimum evidence threshold (n=${MIN_SAMPLE_SIZE}); this is a project heuristic, not a universal GWAS quality cutoff`,
+        reason: `excluded: study sample size (n≈${assoc.totalSampleSize}) is below PolyRisk's MVP minimum evidence threshold (n=${MIN_SAMPLE_SIZE}); this is a project heuristic, not a universal GWAS quality cutoff`,
       };
     }
 
     return { valid: true, reason: 'passes PolyRisk basic evidence QC' };
   }
 
-  private buildIncludedDecision(assoc: GWASAssociation, pvalue: number, userAncestry: string | null): FilterDecision {
+  private buildIncludedDecision(assoc: GWASAssociation, userAncestry: string | null): FilterDecision {
     const effectSize = this.getEffectSize(assoc)!;
     const effectType = this.getEffectType(assoc);
-    const ancestralGroups = this.parseAncestryGroups(assoc.ancestry);
-    const ancestryMessage = this.getAncestryMessage(ancestralGroups, userAncestry);
+    const ancestryMessage = this.getAncestryMessage(assoc.ancestralGroups ?? [], userAncestry);
     const effectDescription = effectType === 'OR' ? `OR=${effectSize.toFixed(3)}` : `β=${effectSize.toFixed(3)}`;
 
     return {
       rsid: assoc.rsid,
-      riskAllele: this.parseAllele(assoc.risk_allele),
-      riskAlleleCount: assoc.risk_allele_count ?? null,
-      pubmedId: assoc.pubmed_id ?? null,
-      studyAccession: assoc.study_accession ?? null,
-      traitName: assoc.trait?.join(', ') ?? '',
+      riskAllele: assoc.riskAllele,
+      pubmedId: assoc.pubmedId || null,
+      studyAccession: assoc.studyAccession || null,
+      traitName: assoc.traitName,
       effectSize,
       effectType,
-      pvalue,
-      pvalueFormatted: this.formatPvalue(assoc, pvalue),
-      ancestryDisplay: assoc.ancestry ?? null,
-      ancestralGroups,
-      totalSampleSize: this.getSampleSize(assoc),
+      pvalue: assoc.pvalue,
+      pvalueFormatted: this.formatPvalue(assoc),
+      ancestralGroups: assoc.ancestralGroups ?? [],
+      totalSampleSize: assoc.totalSampleSize,
       decision: 'included',
       reason:
-        `included: genome-wide significant (p=${this.formatPvalue(assoc, pvalue)}); ` +
-        `adequate study size (n≈${this.getSampleSize(assoc)}); ` +
-        `valid effect estimate (${effectDescription}); effect allele=${this.parseAllele(assoc.risk_allele)}` +
+        `included: genome-wide significant (p=${this.formatPvalue(assoc)}); ` +
+        `adequate study size (n≈${assoc.totalSampleSize}); ` +
+        `valid effect estimate (${effectDescription}); effect allele=${assoc.riskAllele}` +
         ancestryMessage,
     };
   }
 
-  private buildExcludedDecision(assoc: GWASAssociation, pvalue: number, reason: string): FilterDecision {
-    const ancestralGroups = this.parseAncestryGroups(assoc.ancestry);
+  private buildExcludedDecision(assoc: GWASAssociation, reason: string): FilterDecision {
     return {
       rsid: assoc.rsid,
-      riskAllele: this.parseAllele(assoc.risk_allele) ?? '',
-      riskAlleleCount: assoc.risk_allele_count ?? null,
-      pubmedId: assoc.pubmed_id ?? null,
-      studyAccession: assoc.study_accession ?? null,
-      traitName: assoc.trait?.join(', ') ?? '',
+      riskAllele: assoc.riskAllele || '',
+      pubmedId: assoc.pubmedId || null,
+      studyAccession: assoc.studyAccession || null,
+      traitName: assoc.traitName || '',
       effectSize: this.getEffectSize(assoc) ?? 0,
       effectType: this.getEffectType(assoc),
-      pvalue,
-      pvalueFormatted: Number.isFinite(pvalue) ? this.formatPvalue(assoc, pvalue) : 'unknown',
-      ancestryDisplay: assoc.ancestry ?? null,
-      ancestralGroups,
-      totalSampleSize: this.getSampleSize(assoc),
+      pvalue: assoc.pvalue,
+      pvalueFormatted: Number.isFinite(assoc.pvalue) ? this.formatPvalue(assoc) : 'unknown',
+      ancestralGroups: assoc.ancestralGroups ?? [],
+      totalSampleSize: assoc.totalSampleSize ?? 0,
       decision: 'excluded',
       reason,
     };
   }
 
-  private buildSupersededDecision(assoc: GWASAssociation, pvalue: number, supersededByAllele: string): FilterDecision {
-    const ancestralGroups = this.parseAncestryGroups(assoc.ancestry);
+  private buildSupersededDecision(assoc: GWASAssociation, supersededByAllele: string): FilterDecision {
     return {
       rsid: assoc.rsid,
-      riskAllele: this.parseAllele(assoc.risk_allele),
-      riskAlleleCount: assoc.risk_allele_count ?? null,
-      pubmedId: assoc.pubmed_id ?? null,
-      studyAccession: assoc.study_accession ?? null,
-      traitName: assoc.trait?.join(', ') ?? '',
+      riskAllele: assoc.riskAllele,
+      pubmedId: assoc.pubmedId || null,
+      studyAccession: assoc.studyAccession || null,
+      traitName: assoc.traitName,
       effectSize: this.getEffectSize(assoc) ?? 0,
       effectType: this.getEffectType(assoc),
-      pvalue,
-      pvalueFormatted: this.formatPvalue(assoc, pvalue),
-      ancestryDisplay: assoc.ancestry ?? null,
-      ancestralGroups,
-      totalSampleSize: this.getSampleSize(assoc),
+      pvalue: assoc.pvalue,
+      pvalueFormatted: this.formatPvalue(assoc),
+      ancestralGroups: assoc.ancestralGroups ?? [],
+      totalSampleSize: assoc.totalSampleSize,
       decision: 'excluded',
       reason: `excluded from scoring: another qualifying association for ${assoc.rsid} has stronger study support (${supersededByAllele}); retaining one effect estimate prevents double-counting the same variant`,
     };
   }
 
-  private matchesTargetTrait(traits: string[] | undefined, keywords: string[]): boolean {
-    if (!traits || traits.length === 0) return false;
-    const normalized = traits.map((t) => t.toLowerCase());
-    return keywords.some((kw) => normalized.some((t) => t.includes(kw.toLowerCase())));
-  }
-
-  private resolvePvalue(assoc: GWASAssociation): number {
-    if (Number.isFinite(assoc.pvalue_mantissa) && Number.isFinite(assoc.pvalue_exponent)) {
-      return (assoc.pvalue_mantissa as number) * Math.pow(10, assoc.pvalue_exponent as number);
+  private formatPvalue(assoc: GWASAssociation): string {
+    if (Number.isFinite(assoc.pvalueMantissa) && Number.isFinite(assoc.pvalueExponent)) {
+      return `${assoc.pvalueMantissa} × 10^${assoc.pvalueExponent}`;
     }
-    return Number.isFinite(assoc.pvalue) ? (assoc.pvalue as number) : NaN;
-  }
-
-  private formatPvalue(assoc: GWASAssociation, resolvedPvalue: number): string {
-    if (Number.isFinite(assoc.pvalue_mantissa) && Number.isFinite(assoc.pvalue_exponent)) {
-      return `${assoc.pvalue_mantissa} × 10^${assoc.pvalue_exponent}`;
-    }
-    return Number.isFinite(resolvedPvalue) ? resolvedPvalue.toExponential(2) : 'unknown';
+    return Number.isFinite(assoc.pvalue) ? assoc.pvalue.toExponential(2) : 'unknown';
   }
 
   private getEffectSize(assoc: GWASAssociation): number | null {
-    if (assoc.odds_ratio !== null && assoc.odds_ratio !== undefined && Number.isFinite(assoc.odds_ratio) && assoc.odds_ratio > 0) {
-      return assoc.odds_ratio;
+    if (assoc.orPerCopyNum !== null && assoc.orPerCopyNum !== undefined && Number.isFinite(assoc.orPerCopyNum) && assoc.orPerCopyNum > 0) {
+      return assoc.orPerCopyNum;
     }
-    if (assoc.beta_num !== null && assoc.beta_num !== undefined && Number.isFinite(assoc.beta_num)) {
-      return this.getSignedBeta(assoc.beta_num, assoc.beta_direction ?? null);
+    if (assoc.betaNum !== null && assoc.betaNum !== undefined && Number.isFinite(assoc.betaNum)) {
+      return this.getSignedBeta(assoc.betaNum, assoc.betaDirection);
     }
     return null;
   }
 
   private getEffectType(assoc: GWASAssociation): EffectType {
-    if (assoc.odds_ratio !== null && assoc.odds_ratio !== undefined && Number.isFinite(assoc.odds_ratio) && assoc.odds_ratio > 0) return 'OR';
-    if (assoc.beta_num !== null && assoc.beta_num !== undefined && Number.isFinite(assoc.beta_num)) return 'beta';
+    if (assoc.orPerCopyNum !== null && assoc.orPerCopyNum !== undefined && Number.isFinite(assoc.orPerCopyNum) && assoc.orPerCopyNum > 0) return 'OR';
+    if (assoc.betaNum !== null && assoc.betaNum !== undefined && Number.isFinite(assoc.betaNum)) return 'beta';
     return 'unknown';
   }
 
@@ -240,39 +199,9 @@ export class EvidenceFilterEngine {
     return beta;
   }
 
-  private parseAllele(raw: string | null | undefined): string {
-    if (!raw) return '';
-    const parts = raw.split('-');
-    return (parts.length > 1 ? parts[parts.length - 1] : raw).trim().toUpperCase();
-  }
-
-  private hasValidRiskAllele(raw: string | null | undefined): boolean {
-    return ['A', 'C', 'G', 'T'].includes(this.parseAllele(raw));
-  }
-
-  private getSampleSize(assoc: GWASAssociation): number {
-    return Number.isFinite(assoc.total_sample_size) && (assoc.total_sample_size as number) > 0
-      ? (assoc.total_sample_size as number)
-      : 0;
-  }
-
-  /**
-   * Parses group names out of Person 1's formatted ancestry string,
-   * e.g. "case: European (N=4162); control: European, African (N=5000)"
-   * -> ["European", "African"]
-   */
-  private parseAncestryGroups(ancestry: string | null | undefined): string[] {
-    if (!ancestry) return [];
-    const groups = new Set<string>();
-    const segmentPattern = /:\s*([^(]+)\(N=/g;
-    let match: RegExpExecArray | null;
-    while ((match = segmentPattern.exec(ancestry)) !== null) {
-      match[1].split(',').forEach((g) => {
-        const trimmed = g.trim();
-        if (trimmed) groups.add(trimmed);
-      });
-    }
-    return Array.from(groups);
+  private hasValidRiskAllele(allele: string | null | undefined): boolean {
+    if (!allele) return false;
+    return ['A', 'C', 'G', 'T'].includes(allele.trim().toUpperCase());
   }
 
   private getAncestryMessage(studyGroups: string[], userAncestry: string | null): string {
