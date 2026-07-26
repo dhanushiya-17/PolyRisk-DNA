@@ -89,19 +89,24 @@ export interface AgentAnalysisResult {
 }
 
 export class AgentService {
-  private client: OpenAI;
+  private _client: OpenAI | null = null;
   private gwasService: GWASCatalogService;
   private pubmedService: PubMedService;
   private filterEngine: EvidenceFilterEngine;
 
   constructor() {
-    this.client = new OpenAI({
-      apiKey: process.env.GROQ_API_KEY,
-      baseURL: 'https://api.groq.com/openai/v1',
-    });
     this.gwasService = new GWASCatalogService();
     this.pubmedService = new PubMedService();
     this.filterEngine = new EvidenceFilterEngine();
+  }
+
+  private get client(): OpenAI {
+    if (!this._client) {
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) throw new Error('GROQ_API_KEY environment variable is not set');
+      this._client = new OpenAI({ apiKey, baseURL: 'https://api.groq.com/openai/v1' });
+    }
+    return this._client;
   }
 
   async runAnalysis(
