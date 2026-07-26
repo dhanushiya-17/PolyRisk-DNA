@@ -1195,9 +1195,10 @@ function computeClientPRS(genotypeMap) {
     });
   }
 
-  // Rank all 34 by z-score, return top 5
-  all.sort((a,b) => (b.riskInterpretation.zScore||0) - (a.riskInterpretation.zScore||0));
-  return all.slice(0, 5);
+  // Only include diseases where at least one variant was matched in the file
+  const withData = all.filter(r => r.prsResult.contributions.length > 0);
+  withData.sort((a,b) => (b.riskInterpretation.zScore||0) - (a.riskInterpretation.zScore||0));
+  return withData.slice(0, 5);
 }
 
 // ─────────────────────────── TRAIT DEFINITIONS ───────────────────────────
