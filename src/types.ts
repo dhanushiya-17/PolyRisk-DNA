@@ -22,10 +22,14 @@ export type FilterDecisionType =
   | 'included'
   | 'excluded';
 
+export type ConfidenceLevel =
+  | 'low'
+  | 'moderate'
+  | 'high';
 
-// ============================================================
-// VARIANT INPUT
-// ============================================================
+/* =========================================================
+   VARIANT VALIDATION
+   ========================================================= */
 
 export interface ValidatedVariant {
   rsid: string;
@@ -34,30 +38,32 @@ export interface ValidatedVariant {
   error?: string;
 }
 
+/* =========================================================
+   GWAS ASSOCIATION
+   ========================================================= */
 
-// ============================================================
-// GWAS ASSOCIATION
-// ============================================================
-
-/**
- * Normalised association returned by GWASCatalogService.
- *
- * Important:
- * - riskAllele is the bare allele, e.g. "T"
- * - orPerCopyNum is the RAW odds ratio
- * - betaNum is the RAW beta
- * - pvalueMantissa/pvalueExponent are preserved because extremely
- *   small GWAS p-values can underflow to 0 in JavaScript
- */
 export interface GWASAssociation {
   rsid: string;
 
+  /*
+   * Bare effect/risk allele.
+   * Example: "T"
+   */
   riskAllele: string;
 
+  /*
+   * Numeric p-value.
+   *
+   * Very small values may underflow to 0 in JavaScript,
+   * therefore mantissa/exponent are also preserved.
+   */
   pvalue: number;
   pvalueMantissa: number;
   pvalueExponent: number;
 
+  /*
+   * Raw GWAS effect estimates.
+   */
   orPerCopyNum: number | null;
 
   betaNum: number | null;
@@ -66,6 +72,9 @@ export interface GWASAssociation {
 
   riskFrequency: number | null;
 
+  /*
+   * Study metadata.
+   */
   studyAccession: string;
   pubmedId: string;
 
@@ -79,10 +88,48 @@ export interface GWASAssociation {
   totalSampleSize: number;
 }
 
+/* =========================================================
+   EVIDENCE QUALITY
+   ========================================================= */
 
-// ============================================================
-// EVIDENCE FILTERING
-// ============================================================
+/*
+ * PolyRisk heuristic evidence score.
+ *
+ * IMPORTANT:
+ * This is NOT a clinical probability and NOT a universally
+ * accepted GWAS evidence score.
+ *
+ * It exists to make the evidence-selection process transparent.
+ */
+export interface EvidenceQuality {
+  /*
+   * Total score from 0–100.
+   */
+  score: number;
+
+  level: ConfidenceLevel;
+
+  /*
+   * Score components.
+   *
+   * significanceScore: max 25
+   * sampleSizeScore:   max 25
+   * effectScore:       max 20
+   * ancestryScore:     max 20
+   * replicationScore:  max 10
+   */
+  significanceScore: number;
+  sampleSizeScore: number;
+  effectScore: number;
+  ancestryScore: number;
+  replicationScore: number;
+
+  warnings: string[];
+}
+
+/* =========================================================
+   FILTER DECISION
+   ========================================================= */
 
 export interface FilterDecision {
   rsid: string;
@@ -94,14 +141,14 @@ export interface FilterDecision {
 
   traitName: string;
 
-  /**
-   * RAW study effect estimate.
+  /*
+   * Raw scientific effect estimate.
    *
-   * If effectType === "OR":
-   *     effectSize is the raw odds ratio.
+   * If effectType = OR:
+   *   effectSize is the raw OR.
    *
-   * If effectType === "beta":
-   *     effectSize is the signed beta.
+   * If effectType = beta:
+   *   effectSize is the signed beta.
    *
    * Do NOT confuse this with PRSContribution.weight.
    */
@@ -119,8 +166,9 @@ export interface FilterDecision {
   decision: FilterDecisionType;
 
   reason: string;
-}
 
+  evidenceQuality?: EvidenceQuality;
+}
 
 export interface FilterEvidenceResult {
   disease: Disease;
@@ -136,35 +184,43 @@ export interface FilterEvidenceResult {
   allDecisions: FilterDecision[];
 }
 
-
-// ============================================================
-// PRS SCORING
-// ============================================================
+/* =========================================================
+   PRS CONTRIBUTION
+   ========================================================= */
 
 export interface PRSContribution {
   rsid: string;
 
   riskAllele: string;
 
-  /**
-   * Number of effect/risk alleles carried:
-   * 0, 1 or 2.
+  /*
+   * Number of effect-allele copies:
+   *
+   * 0 = no copies
+   * 1 = one copy
+   * 2 = two copies
    */
   genotypeAlleleCount: number;
 
-  /**
-   * Weight actually used in the PRS formula.
+  /*
+   * Whether this particular SNP used an assumed dosage.
    *
-   * For odds ratios:
+   * This allows P3/UI to clearly distinguish measured
+   * genotype contributions from fallback assumptions.
+   */
+  genotypeAssumed?: boolean;
+
+  /*
+   * Weight actually used by PRS.
    *
+   * OR association:
    *     weight = ln(OR)
    *
-   * For beta effects:
-   *
+   * beta association:
    *     weight = beta
    *
-   * This is intentionally NOT named effectSize because
-   * FilterDecision.effectSize stores the RAW study estimate.
+   * This is intentionally NOT called effectSize because
+   * FilterDecision.effectSize contains the raw GWAS estimate.
    */
   weight: number;
 
@@ -172,41 +228,60 @@ export interface PRSContribution {
     | 'OR_log'
     | 'beta';
 
-  /**
+  /*
    * contribution =
-   * weight × genotypeAlleleCount
+   * genotypeAlleleCount × weight
    */
   contribution: number;
+
+  /*
+   * Absolute share of total PRS contribution.
+   *
+   * Uses absolute contributions in the denominator so
+   * protective and risk effects do not cancel each other.
+   */
+  contributionPercent?: number;
 
   studyAccession: string | null;
 
   pubmedId: string | null;
+
+  evidenceScore?: number;
 }
 
+/* =========================================================
+   PRS RESULT
+   ========================================================= */
 
 export interface PRSResult {
   disease: Disease;
 
-  /**
-   * PRS = Σ(weight_i × genotype_i)
-   */
   totalScore: number;
 
   contributions: PRSContribution[];
 
   variantsIncluded: number;
 
-  /**
-   * True when no genotype map was supplied and dosage=1
-   * was assumed for all included variants.
+  /*
+   * True if dosage was assumed for at least one scored SNP.
    */
   genotypeAssumed: boolean;
+
+  /*
+   * Exact variants for which dosage was unavailable.
+   *
+   * Empty when every scored SNP had supplied genotype dosage.
+   */
+  assumedGenotypeRsids?: string[];
+
+  confidenceLevel?: ConfidenceLevel;
+
+  confidenceReason?: string;
 }
 
-
-// ============================================================
-// CITATIONS
-// ============================================================
+/* =========================================================
+   CITATIONS
+   ========================================================= */
 
 export interface Citation {
   pubmedId: string;
@@ -222,10 +297,9 @@ export interface Citation {
   url: string;
 }
 
-
-// ============================================================
-// RISK INTERPRETATION
-// ============================================================
+/* =========================================================
+   RISK INTERPRETATION
+   ========================================================= */
 
 export interface RiskInterpretation {
   disease: Disease;
@@ -238,20 +312,16 @@ export interface RiskInterpretation {
 
   percentileApprox: number;
 
-  confidenceLevel:
-    | 'low'
-    | 'moderate'
-    | 'high';
+  confidenceLevel: ConfidenceLevel;
 
   confidenceReason: string;
 
   description: string;
 }
 
-
-// ============================================================
-// LIFESTYLE CONTEXT
-// ============================================================
+/* =========================================================
+   LIFESTYLE CONTEXT
+   ========================================================= */
 
 export interface LifestyleContext {
   disease: Disease;
@@ -264,10 +334,9 @@ export interface LifestyleContext {
   source: string;
 }
 
-
-// ============================================================
-// FINAL REPORT
-// ============================================================
+/* =========================================================
+   FINAL REPORT
+   ========================================================= */
 
 export interface PolyRiskReport {
   disease: Disease;
