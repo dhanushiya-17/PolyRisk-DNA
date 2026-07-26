@@ -275,7 +275,7 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M9 2L4 6.5L9 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Back
     </button>
-    <span class="pill pill-teal">3 Conditions</span>
+    <span class="pill pill-teal">34 Conditions</span>
   </div>
 
   <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
@@ -284,7 +284,7 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
       AI Agent Running
     </div>
     <h2 class="t-title">Scanning all known<br>disease associations<span class="typing-dots"></span></h2>
-    <p class="t-body mt-10">Querying the NHGRI-EBI GWAS Catalog across Type 2 Diabetes, Heart Disease, and Macular Degeneration simultaneously.</p>
+    <p class="t-body mt-10">Querying GWAS-validated variants across 34 conditions — metabolic, cardiovascular, neurological, autoimmune, cancer, and more.</p>
     <div class="divider mt-28"></div>
     <div class="steps-list" id="steps-list"></div>
   </div>
@@ -309,7 +309,7 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 
   <div class="fu mb-14">
     <p class="t-label mb-6">YOUR GENETIC RISK REPORT</p>
-    <h2 class="t-title" style="font-size:26px" id="results-headline">3 conditions analyzed</h2>
+    <h2 class="t-title" style="font-size:26px" id="results-headline">Top 5 conditions analyzed</h2>
     <p class="t-body mt-6" style="font-size:14px">Ranked by genetic risk · tap a condition to expand details</p>
   </div>
 
@@ -358,21 +358,56 @@ const state = { fileContent: null, allResults: [], activeDisease: null, genotype
 
 // ─────────────────────────── CONSTANTS ───────────────────────────
 const DISEASE_LABELS = {
-  type2_diabetes: 'Type 2 Diabetes',
-  coronary_artery_disease: 'Heart Disease',
-  age_related_macular_degeneration: 'Macular Degeneration',
+  type2_diabetes:'Type 2 Diabetes', obesity:'Obesity',
+  coronary_artery_disease:'Coronary Artery Disease', atrial_fibrillation:'Atrial Fibrillation',
+  stroke:'Stroke', long_qt_syndrome:'Long QT Syndrome', hypertension:'Hypertension',
+  venous_thromboembolism:'Venous Thromboembolism',
+  alzheimers:"Alzheimer's Disease", parkinsons:"Parkinson's Disease",
+  bipolar_disorder:'Bipolar Disorder', schizophrenia:'Schizophrenia',
+  depression:'Depression', migraine:'Migraine',
+  celiac_disease:'Celiac Disease', type1_diabetes:'Type 1 Diabetes',
+  rheumatoid_arthritis:'Rheumatoid Arthritis', lupus:'Lupus (SLE)',
+  crohns_disease:"Crohn's Disease", psoriasis:'Psoriasis',
+  ankylosing_spondylitis:'Ankylosing Spondylitis', thyroid_autoimmune:'Thyroid Autoimmune Disease',
+  asthma:'Asthma', eczema:'Eczema / Atopic Dermatitis',
+  breast_cancer:'Breast Cancer', ovarian_cancer:'Ovarian Cancer',
+  prostate_cancer:'Prostate Cancer', colorectal_cancer:'Colorectal Cancer',
+  age_related_macular_degeneration:'Macular Degeneration', glaucoma:'Glaucoma',
+  chronic_kidney_disease:'Chronic Kidney Disease', osteoporosis:'Osteoporosis',
+  gout:'Gout', nafld:'Fatty Liver Disease (NAFLD)',
 };
 
 const DISEASE_SHORT = {
-  type2_diabetes: 't2d',
-  coronary_artery_disease: 'cad',
-  age_related_macular_degeneration: 'amd',
+  type2_diabetes:'t2d', obesity:'obes', coronary_artery_disease:'cad',
+  atrial_fibrillation:'af', stroke:'stroke', long_qt_syndrome:'lqts',
+  hypertension:'htn', venous_thromboembolism:'vte', alzheimers:'alz',
+  parkinsons:'pd', bipolar_disorder:'bpd', schizophrenia:'scz',
+  depression:'dep', migraine:'mgr', celiac_disease:'cel', type1_diabetes:'t1d',
+  rheumatoid_arthritis:'ra', lupus:'sle', crohns_disease:'cro', psoriasis:'pso',
+  ankylosing_spondylitis:'as', thyroid_autoimmune:'thy', asthma:'ast', eczema:'ecz',
+  breast_cancer:'bca', ovarian_cancer:'oca', prostate_cancer:'pca',
+  colorectal_cancer:'crc', age_related_macular_degeneration:'amd', glaucoma:'gla',
+  chronic_kidney_disease:'ckd', osteoporosis:'ost', gout:'gout', nafld:'nafld',
 };
 
 const DISEASE_ICONS = {
-  type2_diabetes:  { emoji: '🩸', bg: '#FEF3C7' },
-  coronary_artery_disease: { emoji: '❤️', bg: '#FEE2E2' },
-  age_related_macular_degeneration: { emoji: '👁️', bg: '#EDE9FE' },
+  type2_diabetes:{emoji:'🩸',bg:'#FEF3C7'}, obesity:{emoji:'⚖️',bg:'#FEF3C7'},
+  coronary_artery_disease:{emoji:'❤️',bg:'#FEE2E2'}, atrial_fibrillation:{emoji:'💓',bg:'#FEE2E2'},
+  stroke:{emoji:'🧠',bg:'#FEE2E2'}, long_qt_syndrome:{emoji:'⚡',bg:'#FEE2E2'},
+  hypertension:{emoji:'🫀',bg:'#FEE2E2'}, venous_thromboembolism:{emoji:'🩹',bg:'#FEE2E2'},
+  alzheimers:{emoji:'🧩',bg:'#EDE9FE'}, parkinsons:{emoji:'🤲',bg:'#EDE9FE'},
+  bipolar_disorder:{emoji:'🌊',bg:'#EDE9FE'}, schizophrenia:{emoji:'🌀',bg:'#EDE9FE'},
+  depression:{emoji:'🌧️',bg:'#EDE9FE'}, migraine:{emoji:'💢',bg:'#EDE9FE'},
+  celiac_disease:{emoji:'🌾',bg:'#D1FAE5'}, type1_diabetes:{emoji:'💉',bg:'#D1FAE5'},
+  rheumatoid_arthritis:{emoji:'🦴',bg:'#D1FAE5'}, lupus:{emoji:'🦋',bg:'#D1FAE5'},
+  crohns_disease:{emoji:'🔥',bg:'#D1FAE5'}, psoriasis:{emoji:'🩻',bg:'#D1FAE5'},
+  ankylosing_spondylitis:{emoji:'🪵',bg:'#D1FAE5'}, thyroid_autoimmune:{emoji:'🦋',bg:'#D1FAE5'},
+  asthma:{emoji:'🌬️',bg:'#DBEAFE'}, eczema:{emoji:'🌸',bg:'#DBEAFE'},
+  breast_cancer:{emoji:'🎀',bg:'#FCE7F3'}, ovarian_cancer:{emoji:'🩺',bg:'#FCE7F3'},
+  prostate_cancer:{emoji:'🔵',bg:'#DBEAFE'}, colorectal_cancer:{emoji:'🧬',bg:'#D1FAE5'},
+  age_related_macular_degeneration:{emoji:'👁️',bg:'#EDE9FE'}, glaucoma:{emoji:'🔍',bg:'#EDE9FE'},
+  chronic_kidney_disease:{emoji:'🫘',bg:'#FEF3C7'}, osteoporosis:{emoji:'🦴',bg:'#FEF3C7'},
+  gout:{emoji:'🦶',bg:'#FEF3C7'}, nafld:{emoji:'🫁',bg:'#FEF3C7'},
 };
 
 const TIER_ORDER = { high: 0, moderate: 1, low: 2 };
@@ -439,48 +474,602 @@ const DEMO = {
 };
 
 // ─────────────────────────── DEMO FILE CONTENT ───────────────────────────
-const DEMO_FILE_CONTENT = `# This data file generated by 23andMe\n# rsid\tchromosome\tposition\tgenotype\nrs7903146\t10\t114758349\tTC\nrs12255372\t10\t114773927\tTG\nrs4402960\t3\t185793899\tGT\nrs7756992\t6\t20787199\tAC\nrs1111875\t10\t94455539\tCT\nrs13266634\t8\t118184783\tCG\nrs1333049\t9\t22115026\tCC\nrs4977574\t9\t22098218\tGA\nrs1061170\t1\t196659237\tTC\nrs10490924\t10\t124214448\tGT\nrs762551\t15\t75041917\tCC\nrs9939609\t16\t53820527\tAT\nrs4680\t22\t19963748\tAA\nrs1801260\t4\t56295135\tCC\nrs1815739\t11\t66560624\tCT\nrs4988235\t2\t136608697\tGG\nrs713598\t7\t141972804\tCC`;
+const DEMO_FILE_CONTENT = `# This data file generated by 23andMe\n# rsid\tchromosome\tposition\tgenotype\nrs7903146\t10\t114758349\tTC\nrs12255372\t10\t114773927\tTG\nrs4402960\t3\t185793899\tGT\nrs7756992\t6\t20787199\tAC\nrs1111875\t10\t94455539\tCT\nrs13266634\t8\t118184783\tCG\nrs1333049\t9\t22115026\tCC\nrs4977574\t9\t22098218\tGA\nrs1061170\t1\t196659237\tTC\nrs10490924\t10\t124214448\tGT\nrs762551\t15\t75041917\tCC\nrs9939609\t16\t53820527\tAT\nrs4680\t22\t19963748\tAA\nrs1801260\t4\t56295135\tCC\nrs1815739\t11\t66560624\tCT\nrs4988235\t2\t136608697\tGG\nrs713598\t7\t141972804\tCC\nrs6567160\t18\t57839769\tCC\nrs1558902\t16\t53813367\tTT\nrs2200733\t4\t111614632\tCC\nrs10033464\t4\t111645664\tGG\nrs3807989\t7\t116050636\tGG\nrs505922\t9\t136148376\tCC\nrs1537374\t9\t22100176\tCC\nrs2074238\t11\t2466788\tTT\nrs10494366\t11\t2486990\tTT\nrs17367504\t1\t11785365\tCC\nrs5186\t3\t148459988\tAA\nrs16998073\t4\t81184341\tAA\nrs1801253\t10\t115801466\tCC\nrs6025\t1\t169519049\tCC\nrs1799963\t11\t46761055\tGG\nrs1126643\t5\t52240705\tTT\nrs429358\t19\t44908684\tTC\nrs6656401\t1\t207618674\tGA\nrs6733839\t2\t127544632\tCT\nrs10792832\t11\t85867875\tAG\nrs356220\t4\t90626111\tCC\nrs76904798\t12\t40614434\tCC\nrs6430538\t1\t205756354\tGG\nrs4765913\t12\t2345261\tCC\nrs2251219\t10\t5998517\tGG\nrs1006737\t12\t2353940\tGG\nrs1625579\t1\t98515135\tGG\nrs2535629\t3\t52766543\tGG\nrs17662626\t1\t98515856\tCC\nrs301806\t1\t45975831\tCC\nrs4543289\t7\t83561775\tCC\nrs1021363\t1\t72583668\tTT\nrs2651899\t1\t68034037\tCC\nrs10166942\t2\t233983090\tTT\nrs7424630\t6\t13054101\tAA\nrs2187668\t6\t32659436\tGA\nrs7775228\t6\t32658829\tGC\nrs13151961\t4\t123341901\tGC\nrs2476601\t1\t113872139\tGG\nrs689\t11\t2160994\tTT\nrs9272346\t6\t32631726\tGG\nrs6457617\t6\t32660170\tGA\nrs10760130\t9\t123779671\tGG\nrs9271366\t6\t32659424\tGG\nrs2066844\t16\t50745926\tCC\nrs11209026\t1\t67705958\tAA\nrs9858542\t3\t49718413\tGG\nrs12191877\t6\t31321738\tCC\nrs4085613\t5\t96244549\tAA\nrs2201841\t1\t67705958\tCC\nrs13202464\t5\t96259038\tTT\nrs10865331\t12\t113362768\tCC\nrs4389526\t1\t67736076\tGG\nrs2292239\t12\t56397389\tCC\nrs6679677\t1\t113803580\tGG\nrs8076131\t17\t35048928\tTT\nrs7216389\t17\t35094917\tCC\nrs2305480\t17\t35072799\tAA\nrs11121129\t1\t152285861\tGG\nrs877776\t1\t152325462\tTT\nrs2164983\t1\t152287475\tGG\nrs2981582\t10\t123337627\tCC\nrs3803662\t16\t52586341\tCC\nrs13387042\t2\t217458846\tGG\nrs889312\t5\t56031884\tAA\nrs2072590\t2\t114985819\tGG\nrs752590\t15\t28398788\tTT\nrs10088218\t8\t128439620\tCC\nrs1447295\t8\t128531047\tCC\nrs10993994\t10\t51549496\tCC\nrs4430796\t17\t36084574\tAA\nrs6983267\t8\t128413305\tTT\nrs4939827\t18\t46461558\tCC\nrs10795668\t10\t114671742\tAA\nrs3802842\t11\t111169551\tAA\nrs4236601\t7\t116307067\tGG\nrs10483727\t6\t14831685\tGG\nrs1533428\t7\t116345945\tAA\nrs10203727\t16\t20366336\tGG\nrs2453580\t13\t95360774\tTT\nrs11959928\t5\t176825556\tTT\nrs2234693\t6\t152129148\tCC\nrs9594759\t13\t43028876\tCC\nrs4988300\t11\t68132094\tCC\nrs3736228\t11\t68177098\tCC\nrs2231142\t4\t88131171\tCT\nrs4607517\t4\t9951145\tGA\nrs742132\t11\t64820833\tGA\nrs738409\t22\t43928847\tCG\nrs58542926\t19\t19379549\tCC\nrs1260326\t2\t27741237\tCT`;
 
 // ─────────────────────────── CLIENT-SIDE PRS ENGINE ───────────────────────────
 // Betas = ln(OR) from published GWAS meta-analyses.
 // popMean/popSD derived from Hardy-Weinberg equilibrium using European MAFs.
 const PRS_DEFS = {
   type2_diabetes: {
-    // Betas: DIAGRAM Consortium meta-analysis (Morris et al., Nat Genet 2012)
-    popMean: 0.649, popSD: 0.286,
-    variants: [
-      {rsid:'rs7903146',  riskAllele:'T', beta:0.336, alleles:['T','C'], gene:'TCF7L2',   desc:'Strongest known T2D gene — controls how much insulin the pancreas releases after a meal.'},
-      {rsid:'rs12255372', riskAllele:'T', beta:0.199, alleles:['T','G'], gene:'TCF7L2',   desc:'Second variant in the same TCF7L2 gene, independently affecting insulin secretion.'},
-      {rsid:'rs4402960',  riskAllele:'T', beta:0.131, alleles:['T','G'], gene:'IGF2BP2',  desc:'Affects insulin-like growth factor signalling and beta-cell function.'},
-      {rsid:'rs7756992',  riskAllele:'G', beta:0.113, alleles:['A','G'], gene:'CDKAL1',   desc:'Involved in tRNA modification; disrupts insulin production when the risk allele is present.'},
-      {rsid:'rs1111875',  riskAllele:'C', beta:0.095, alleles:['C','T'], gene:'HHEX',     desc:'Regulates pancreatic development and beta-cell mass.'},
-      {rsid:'rs13266634', riskAllele:'C', beta:0.068, alleles:['C','G'], gene:'SLC30A8',  desc:'A zinc transporter in pancreatic beta cells; risk allele slightly reduces insulin storage.'},
+    popMean:0.649, popSD:0.286,
+    variants:[
+      {rsid:'rs7903146',  riskAllele:'T', beta:0.336, alleles:['T','C'], gene:'TCF7L2',    desc:'Strongest known T2D gene — controls how much insulin the pancreas releases after a meal.'},
+      {rsid:'rs12255372', riskAllele:'T', beta:0.199, alleles:['T','G'], gene:'TCF7L2',    desc:'Second variant in the same TCF7L2 gene, independently affecting insulin secretion.'},
+      {rsid:'rs4402960',  riskAllele:'T', beta:0.131, alleles:['T','G'], gene:'IGF2BP2',   desc:'Affects insulin-like growth factor signalling and beta-cell function.'},
+      {rsid:'rs7756992',  riskAllele:'G', beta:0.113, alleles:['A','G'], gene:'CDKAL1',    desc:'Involved in tRNA modification; disrupts insulin production when the risk allele is present.'},
+      {rsid:'rs1111875',  riskAllele:'C', beta:0.095, alleles:['C','T'], gene:'HHEX',      desc:'Regulates pancreatic development and beta-cell mass.'},
+      {rsid:'rs13266634', riskAllele:'C', beta:0.068, alleles:['C','G'], gene:'SLC30A8',   desc:'A zinc transporter in pancreatic beta cells; risk allele slightly reduces insulin storage.'},
+    ],
+    lifestyle:[
+      {category:'Physical activity', description:'150 min/week of moderate aerobic exercise reduces T2D incidence by 58% independent of weight loss (Diabetes Prevention Program).'},
+      {category:'Diet', description:'Reducing refined carbohydrates and increasing dietary fibre. Mediterranean and DASH patterns show strongest evidence.'},
+      {category:'Weight management', description:'A 5–7% reduction in body weight reduces T2D progression by ~58% (DPP trial).'},
+      {category:'Sleep', description:'Poor sleep acutely impairs glucose regulation. Aim for 7–9 consistent hours.'},
+      {category:'Smoking cessation', description:'Improves insulin sensitivity measurably within months of stopping.'},
+    ],
+  },
+  obesity: {
+    popMean:0.423, popSD:0.180,
+    variants:[
+      {rsid:'rs9939609',  riskAllele:'A', beta:0.199, alleles:['T','A'], gene:'FTO',    desc:'The most replicated obesity gene. Risk allele raises BMI by ~0.4 kg/m² per copy through effects on appetite regulation in the hypothalamus.'},
+      {rsid:'rs6567160',  riskAllele:'A', beta:0.223, alleles:['C','A'], gene:'MC4R',   desc:'Melanocortin-4 receptor — a key satiety signal. Risk allele reduces the "full" feeling after eating, making overconsumption more likely.'},
+      {rsid:'rs1558902',  riskAllele:'A', beta:0.182, alleles:['T','A'], gene:'FTO',    desc:'Second independent FTO variant with additive effect on body weight through altered energy expenditure regulation.'},
+    ],
+    lifestyle:[
+      {category:'Diet quality', description:'Reducing ultra-processed food intake has stronger evidence than calorie counting alone. Focus on food quality, not just quantity.'},
+      {category:'Protein intake', description:'Higher protein diets (25–30% of calories) increase satiety and reduce total calorie intake without deliberate restriction.'},
+      {category:'Sleep', description:'Short sleep raises ghrelin (hunger hormone) and lowers leptin (satiety hormone) — directly increasing calorie intake the following day.'},
+      {category:'Physical activity', description:'Aerobic exercise plus resistance training preserves muscle mass during weight loss, improving long-term metabolic health.'},
+      {category:'Stress management', description:'Chronic stress raises cortisol, promoting fat storage — particularly visceral fat. Mindfulness-based interventions show modest but real weight effects.'},
     ],
   },
   coronary_artery_disease: {
-    // Betas: CARDIoGRAMplusC4D (Deloukas et al., Nat Genet 2013)
-    popMean: 0.556, popSD: 0.293,
-    variants: [
+    popMean:0.556, popSD:0.293,
+    variants:[
       {rsid:'rs1333049', riskAllele:'C', beta:0.307, alleles:['C','G'], gene:'CDKN2B-AS1', desc:'The 9p21.3 locus — most replicated CAD risk region in the genome. Affects arterial wall biology and plaque formation.'},
       {rsid:'rs4977574', riskAllele:'G', beta:0.278, alleles:['A','G'], gene:'CDKN2B-AS1', desc:'Second 9p21.3 variant, independently confirmed. Works through the same arterial inflammation pathway.'},
     ],
+    lifestyle:[
+      {category:'Smoking cessation', description:'Up to 50% CAD risk reduction within 5 years — more than any medication.'},
+      {category:'LDL cholesterol', description:'Every 1 mmol/L LDL reduction cuts major cardiac events by ~22%. Diet and statins both work.'},
+      {category:'Mediterranean diet', description:'PREDIMED trial: 30% fewer cardiovascular events vs. low-fat diet. Olive oil, fish, nuts, vegetables.'},
+      {category:'Regular aerobic exercise', description:'Improves endothelial function, raises HDL, lowers blood pressure and inflammation simultaneously.'},
+      {category:'Blood pressure control', description:'Target <120/80 mmHg through DASH diet, sodium reduction, and exercise.'},
+    ],
+  },
+  atrial_fibrillation: {
+    popMean:0.362, popSD:0.165,
+    variants:[
+      {rsid:'rs2200733', riskAllele:'T', beta:0.444, alleles:['C','T'], gene:'PITX2',  desc:'PITX2 controls left–right asymmetry of the heart during development. Risk allele disrupts pulmonary vein electrical isolation — the most common origin of AF.'},
+      {rsid:'rs10033464',riskAllele:'T', beta:0.239, alleles:['G','T'], gene:'PITX2',  desc:'Second independent PITX2 variant, confirmed across multiple AF GWAS studies.'},
+      {rsid:'rs3807989', riskAllele:'A', beta:0.148, alleles:['G','A'], gene:'CAV1',   desc:'Caveolin-1 regulates ion channel function in cardiomyocytes, influencing electrical conduction patterns.'},
+    ],
+    lifestyle:[
+      {category:'Alcohol reduction', description:'Even moderate alcohol consumption increases AF risk. Reduction or abstinence significantly lowers AF burden.'},
+      {category:'Weight management', description:'Obesity is a major AF driver. Each 5% weight loss reduces AF episodes by ~6% in overweight patients (LEGACY trial).'},
+      {category:'Blood pressure control', description:'Hypertension is the most common AF risk factor. Keeping BP <130/80 mmHg substantially reduces AF onset.'},
+      {category:'Sleep apnea treatment', description:'Untreated sleep apnea dramatically increases AF recurrence. CPAP therapy reduces AF by ~50% in affected patients.'},
+      {category:'Regular aerobic exercise', description:'Moderate exercise (not excessive endurance training) reduces AF risk. High-volume endurance sport can paradoxically increase AF risk.'},
+    ],
+  },
+  stroke: {
+    popMean:0.244, popSD:0.115,
+    variants:[
+      {rsid:'rs2200733',  riskAllele:'T', beta:0.166, alleles:['C','T'], gene:'PITX2',  desc:'Same PITX2 variant that drives atrial fibrillation — AF is the mechanism by which this variant increases cardioembolic stroke risk.'},
+      {rsid:'rs505922',   riskAllele:'T', beta:0.110, alleles:['C','T'], gene:'ABO',    desc:'ABO blood group affects von Willebrand factor levels and clotting tendency. Non-O blood types have higher ischemic stroke risk.'},
+      {rsid:'rs1537374',  riskAllele:'T', beta:0.148, alleles:['C','T'], gene:'CDKN2B-AS1', desc:'The 9p21.3 locus affects large-vessel atherosclerosis, contributing to large-artery stroke independently of cardiac mechanisms.'},
+    ],
+    lifestyle:[
+      {category:'Blood pressure control', description:'Hypertension is the single largest modifiable stroke risk factor. Every 10 mmHg systolic reduction cuts stroke risk by ~27%.'},
+      {category:'Atrial fibrillation management', description:'AF causes ~30% of ischemic strokes. If you have AF, anticoagulation is the most effective stroke prevention.'},
+      {category:'Smoking cessation', description:'Smoking doubles ischemic stroke risk. Cessation reduces risk substantially within 2–4 years.'},
+      {category:'Dietary improvement', description:'DASH and Mediterranean diets reduce stroke risk through blood pressure, inflammation, and lipid effects simultaneously.'},
+      {category:'Physical activity', description:'Regular aerobic exercise reduces stroke risk by ~25% through multiple mechanisms including blood pressure and platelet function.'},
+    ],
+  },
+  long_qt_syndrome: {
+    popMean:0.696, popSD:0.280,
+    variants:[
+      {rsid:'rs2074238',  riskAllele:'C', beta:0.513, alleles:['T','C'], gene:'KCNQ1', desc:'KCNQ1 encodes a cardiac potassium channel. Risk allele slows repolarisation of the heart muscle, extending the QT interval and increasing risk of dangerous arrhythmias.'},
+      {rsid:'rs10494366', riskAllele:'G', beta:0.336, alleles:['T','G'], gene:'NOS1AP', desc:'NOS1AP modulates nitric oxide signalling in cardiac cells, influencing repolarisation independently of direct ion channel effects.'},
+    ],
+    lifestyle:[
+      {category:'Medication awareness', description:'Many common drugs further prolong the QT interval (some antibiotics, antihistamines, antidepressants). Always inform prescribers of your genetic risk.'},
+      {category:'Electrolyte management', description:'Low potassium and magnesium worsen QT prolongation. Avoid diuretics without electrolyte monitoring. Stay hydrated.'},
+      {category:'Avoid extreme exertion', description:'Sudden intense exercise can trigger arrhythmias. Warm up gradually; avoid competitive swimming without cardiac clearance.'},
+      {category:'Limit stimulants', description:'High caffeine, energy drinks, and stimulant medications can increase arrhythmia risk. Discuss with a cardiologist.'},
+      {category:'Cardiac monitoring', description:'Consider discussing an ECG and possible Holter monitor with your doctor to establish your baseline QTc interval.'},
+    ],
+  },
+  hypertension: {
+    popMean:0.234, popSD:0.105,
+    variants:[
+      {rsid:'rs17367504', riskAllele:'T', beta:0.077, alleles:['C','T'], gene:'MTHFR',  desc:'MTHFR affects homocysteine metabolism; elevated homocysteine is associated with endothelial damage and higher blood pressure.'},
+      {rsid:'rs5186',     riskAllele:'C', beta:0.140, alleles:['A','C'], gene:'AGTR1',   desc:'Angiotensin II receptor type 1 — the key target of ARB medications. Risk allele increases the renin-angiotensin system response, raising arterial tone.'},
+      {rsid:'rs16998073', riskAllele:'T', beta:0.104, alleles:['A','T'], gene:'FGF5',    desc:'Fibroblast growth factor 5 regulates blood pressure through vascular remodelling; GWAS-identified in large hypertension meta-analyses.'},
+      {rsid:'rs1801253',  riskAllele:'G', beta:0.113, alleles:['C','G'], gene:'ADRB1',   desc:'Beta-1 adrenergic receptor — the target of beta-blocker medications. Risk allele increases heart rate and cardiac output response to adrenaline.'},
+    ],
+    lifestyle:[
+      {category:'Sodium reduction', description:'Each 1g/day reduction in sodium intake lowers systolic BP by ~2 mmHg. DASH diet demonstrates the clearest evidence.'},
+      {category:'Physical activity', description:'Regular aerobic exercise lowers resting blood pressure by 5–8 mmHg — comparable to a single antihypertensive medication.'},
+      {category:'Weight management', description:'Each 5kg weight loss reduces blood pressure by approximately 4–5 mmHg.'},
+      {category:'Alcohol reduction', description:'More than 2 drinks/day raises blood pressure consistently. Reduction lowers BP within weeks.'},
+      {category:'Stress management', description:'Chronic stress activates the sympathetic nervous system long-term. Mindfulness and breathing exercises show modest but consistent BP reductions.'},
+    ],
+  },
+  venous_thromboembolism: {
+    popMean:0.353, popSD:0.220,
+    variants:[
+      {rsid:'rs6025',    riskAllele:'T', beta:1.332, alleles:['C','T'], gene:'F5',     desc:'Factor V Leiden — the most common inherited clotting disorder in Europeans. The T allele makes Factor V resistant to inactivation, causing blood to clot more easily.'},
+      {rsid:'rs1799963', riskAllele:'A', beta:0.975, alleles:['G','A'], gene:'F2',     desc:'Prothrombin gene mutation — second most common inherited thrombophilia. Risk allele increases prothrombin (clotting factor) levels by ~30%.'},
+      {rsid:'rs1126643', riskAllele:'C', beta:0.262, alleles:['T','C'], gene:'ITGA2',  desc:'Integrin alpha-2 affects platelet adhesion to collagen. Risk allele increases platelet activation and thrombotic tendency.'},
+    ],
+    lifestyle:[
+      {category:'Movement during travel', description:'Long-haul flights and car journeys: stand and walk every 1–2 hours. Compression stockings and staying hydrated reduce DVT risk substantially.'},
+      {category:'Hydration', description:'Dehydration increases blood viscosity. Stay well-hydrated, especially during illness, hot weather, or travel.'},
+      {category:'Hormonal contraception awareness', description:'Combined oral contraceptives increase VTE risk 3–4×. For women with Factor V Leiden or F2 mutation, this risk is multiplicative. Discuss alternatives with your doctor.'},
+      {category:'Weight management', description:'Obesity roughly doubles VTE risk independently of other factors. Weight management is a meaningful preventive measure.'},
+      {category:'Post-surgical mobility', description:'Early mobilisation after surgery dramatically reduces DVT risk. If hospitalised, discuss VTE prophylaxis with your medical team.'},
+    ],
+  },
+  alzheimers: {
+    popMean:0.495, popSD:0.410,
+    variants:[
+      {rsid:'rs429358',   riskAllele:'C', beta:1.198, alleles:['T','C'], gene:'APOE',   desc:'APOE ε4 — the strongest common genetic risk factor for late-onset Alzheimer\'s. Each C allele raises risk ~3× by impairing amyloid clearance from the brain.'},
+      {rsid:'rs6656401',  riskAllele:'A', beta:0.157, alleles:['G','A'], gene:'CR1',    desc:'Complement receptor 1 — involved in amyloid-beta clearance and neuroinflammation regulation in the brain.'},
+      {rsid:'rs6733839',  riskAllele:'T', beta:0.182, alleles:['C','T'], gene:'BIN1',   desc:'Bridging integrator 1 regulates tau protein trafficking. Elevated tau tangles are a hallmark of Alzheimer\'s pathology.'},
+      {rsid:'rs10792832', riskAllele:'G', beta:0.139, alleles:['A','G'], gene:'PICALM', desc:'PICALM regulates endocytosis and amyloid precursor protein processing, influencing amyloid-beta production in neurons.'},
+    ],
+    lifestyle:[
+      {category:'Aerobic exercise', description:'The strongest modifiable Alzheimer\'s risk factor. 150 min/week reduces dementia risk by ~35% through BDNF upregulation and improved cerebral blood flow.'},
+      {category:'Cognitive engagement', description:'Lifelong learning, reading, social engagement, and novel mental challenges build cognitive reserve — delaying symptom onset even with significant pathology.'},
+      {category:'Sleep quality', description:'The glymphatic system clears amyloid-beta during deep sleep. Chronic poor sleep accelerates amyloid accumulation. Sleep apnea treatment is especially important.'},
+      {category:'Cardiovascular risk management', description:'Hypertension, diabetes, and high LDL in midlife each increase Alzheimer\'s risk. What\'s good for the heart is good for the brain.'},
+      {category:'Mediterranean diet', description:'The MIND diet (Mediterranean-DASH hybrid) is associated with slower cognitive decline and lower Alzheimer\'s risk in multiple cohort studies.'},
+    ],
+  },
+  parkinsons: {
+    popMean:0.324, popSD:0.145,
+    variants:[
+      {rsid:'rs356220',  riskAllele:'G', beta:0.215, alleles:['C','G'], gene:'SNCA',   desc:'Alpha-synuclein — the protein that misfolds into Lewy bodies in Parkinson\'s. Risk allele increases SNCA expression, promoting toxic protein aggregation.'},
+      {rsid:'rs76904798',riskAllele:'T', beta:0.247, alleles:['C','T'], gene:'LRRK2',  desc:'LRRK2 (Leucine-rich repeat kinase 2) — the most common cause of familial Parkinson\'s. Risk variant subtly alters kinase activity affecting dopaminergic neurons.'},
+      {rsid:'rs6430538', riskAllele:'A', beta:0.148, alleles:['G','A'], gene:'SNCA',   desc:'Second independent SNCA region variant, additively increasing alpha-synuclein expression through regulatory elements.'},
+    ],
+    lifestyle:[
+      {category:'Aerobic exercise', description:'The most consistently supported intervention for Parkinson\'s risk reduction and symptom management. Exercise increases dopamine synthesis and neuroplasticity.'},
+      {category:'Caffeine consumption', description:'Multiple large epidemiological studies associate regular caffeine intake with 20–30% lower Parkinson\'s risk, possibly through adenosine receptor effects.'},
+      {category:'Pesticide avoidance', description:'Agricultural pesticide exposure (especially rotenone and paraquat) is among the strongest environmental Parkinson\'s risk factors. Wash produce thoroughly; minimize direct pesticide exposure.'},
+      {category:'Head injury prevention', description:'Repeated traumatic brain injuries are associated with Parkinson\'s risk. Appropriate protective equipment in contact sports.'},
+      {category:'Dietary patterns', description:'Mediterranean diet is associated with lower Parkinson\'s risk. Urate (from dietary purines) may be mildly neuroprotective in men, though the relationship is complex.'},
+    ],
+  },
+  bipolar_disorder: {
+    popMean:0.284, popSD:0.120,
+    variants:[
+      {rsid:'rs4765913', riskAllele:'A', beta:0.131, alleles:['C','A'], gene:'CACNA1C', desc:'Calcium channel gene strongly implicated in mood disorders. Affects neuronal excitability in limbic circuits involved in emotional regulation.'},
+      {rsid:'rs2251219', riskAllele:'A', beta:0.140, alleles:['G','A'], gene:'ANK3',    desc:'Ankyrin-3 scaffolds ion channels at neuronal axon initial segments, influencing the threshold for neuronal firing and mood stability.'},
+      {rsid:'rs1006737', riskAllele:'A', beta:0.166, alleles:['G','A'], gene:'CACNA1C', desc:'Second CACNA1C variant with independent association with bipolar disorder across multiple populations.'},
+    ],
+    lifestyle:[
+      {category:'Sleep regularity', description:'Consistent sleep schedules are among the most important bipolar management tools. Irregular sleep directly triggers manic and depressive episodes.'},
+      {category:'Alcohol and stimulant avoidance', description:'Alcohol disrupts sleep and mood regulation; stimulants can precipitate mania. Both interact adversely with mood stabilisers.'},
+      {category:'Stress management', description:'Psychosocial stress is a major episode trigger. CBT and mindfulness specifically adapted for bipolar disorder show evidence for relapse prevention.'},
+      {category:'Regular routine', description:'Social rhythm therapy — maintaining consistent daily schedules for meals, activity, and social contact — reduces episode frequency.'},
+      {category:'Omega-3 fatty acids', description:'Adjunctive omega-3 supplementation shows modest evidence for reducing depressive episodes in bipolar disorder.'},
+    ],
+  },
+  schizophrenia: {
+    popMean:0.371, popSD:0.120,
+    variants:[
+      {rsid:'rs1625579', riskAllele:'T', beta:0.122, alleles:['G','T'], gene:'MIR137',  desc:'MicroRNA-137 regulates synaptic plasticity genes. Risk allele alters dopamine and glutamate signalling pathways disrupted in schizophrenia.'},
+      {rsid:'rs2535629', riskAllele:'A', beta:0.077, alleles:['G','A'], gene:'ITIH3',   desc:'Inter-alpha-trypsin inhibitor heavy chain 3 is involved in extracellular matrix organisation and neuroinflammation regulation.'},
+      {rsid:'rs17662626',riskAllele:'T', beta:0.113, alleles:['C','T'], gene:'MIR137',  desc:'Second MIR137 region variant with independent effect on microRNA-137 target gene regulation in neurons.'},
+    ],
+    lifestyle:[
+      {category:'Cannabis avoidance', description:'Cannabis use — especially high-THC products in adolescence — substantially increases schizophrenia risk in genetically predisposed individuals. Avoidance is the clearest preventive measure.'},
+      {category:'Urban environment awareness', description:'Urban upbringing and social isolation each increase schizophrenia risk. Strong social connections and community belonging are protective.'},
+      {category:'Early intervention', description:'Early psychosis intervention programs significantly improve long-term outcomes. If you notice unusual perceptual experiences, seek evaluation promptly.'},
+      {category:'Sleep regulation', description:'Sleep disturbance often precedes psychotic episodes. Maintaining consistent sleep schedules reduces relapse risk.'},
+      {category:'Omega-3 fatty acids', description:'High-dose omega-3 supplementation in clinical-high-risk individuals reduced transition to psychosis in the NEURAPRO trial.'},
+    ],
+  },
+  depression: {
+    popMean:0.165, popSD:0.075,
+    variants:[
+      {rsid:'rs301806',  riskAllele:'T', beta:0.077, alleles:['C','T'], gene:'RERE',   desc:'RERE regulates neuronal apoptosis and retinoic acid signalling in the brain — among the first depression loci replicated genome-wide.'},
+      {rsid:'rs4543289', riskAllele:'T', beta:0.068, alleles:['C','T'], gene:'PCLO',   desc:'Piccolo organises neurotransmitter release at presynaptic terminals, affecting serotonin signalling in mood circuits.'},
+      {rsid:'rs1021363', riskAllele:'C', beta:0.068, alleles:['T','C'], gene:'NEGR1',  desc:'Neuronal growth regulator 1 affects synaptic plasticity and neuronal connectivity in limbic pathways involved in emotional processing.'},
+    ],
+    lifestyle:[
+      {category:'Physical activity', description:'Exercise is as effective as antidepressants for mild-to-moderate depression. 30 min of aerobic exercise 3×/week is the evidence-based threshold.'},
+      {category:'Social connection', description:'Social isolation is one of the strongest depression risk factors. Maintaining relationships is a direct protective factor, not optional self-care.'},
+      {category:'Sleep hygiene', description:'Depression and poor sleep are bidirectionally linked. Improving sleep quality — even before treating mood — reduces depressive symptom severity.'},
+      {category:'Rumination reduction', description:'Cognitive behavioural therapy (CBT) specifically targets ruminative thinking patterns. Online CBT programs show comparable efficacy to in-person therapy for mild depression.'},
+      {category:'Sunlight and nature exposure', description:'Bright light therapy (10,000 lux for 30 min each morning) reduces seasonal and non-seasonal depressive symptoms in multiple RCTs.'},
+    ],
+  },
+  migraine: {
+    popMean:0.350, popSD:0.130,
+    variants:[
+      {rsid:'rs2651899',  riskAllele:'T', beta:0.148, alleles:['C','T'], gene:'PRDM16', desc:'PRDM16 regulates vascular smooth muscle and neuronal excitability in brainstem circuits involved in migraine initiation.'},
+      {rsid:'rs10166942', riskAllele:'C', beta:0.174, alleles:['T','C'], gene:'TRPM8',  desc:'TRPM8 is a cold-sensing ion channel in trigeminal nerve endings. Risk allele alters pain threshold in the trigeminovascular pathway driving migraine.'},
+      {rsid:'rs7424630',  riskAllele:'C', beta:0.199, alleles:['A','C'], gene:'PHACTR1', desc:'Phosphatase and actin regulator 1 affects endothelin-1 signalling in cerebral blood vessels, influencing cortical spreading depression — the wave that triggers migraine aura.'},
+    ],
+    lifestyle:[
+      {category:'Trigger identification', description:'Keep a migraine diary for 2–3 months to identify personal triggers. Common triggers: irregular sleep, stress, alcohol (especially red wine), certain foods, dehydration, hormonal fluctuations.'},
+      {category:'Sleep consistency', description:'Irregular sleep patterns — including weekend lie-ins — are a top migraine trigger. Maintaining consistent sleep/wake times dramatically reduces attack frequency.'},
+      {category:'Hydration', description:'Dehydration is a well-established migraine trigger. Consistent daily water intake (not just reactive drinking when thirsty) reduces attack frequency.'},
+      {category:'Stress management', description:'Stress is the most commonly reported migraine trigger. Regular relaxation practices (yoga, meditation, progressive muscle relaxation) reduce attack frequency.'},
+      {category:'Preventive medication', description:'If attacks are frequent (≥4/month), preventive treatment (beta-blockers, topiramate, CGRP antagonists) dramatically reduces attack burden. Discuss with a neurologist.'},
+    ],
+  },
+  celiac_disease: {
+    popMean:0.749, popSD:0.380,
+    variants:[
+      {rsid:'rs2187668', riskAllele:'A', beta:0.806, alleles:['G','A'], gene:'HLA-DQA1', desc:'HLA-DQ2 haplotype component — present in ~90% of celiac patients. DQ2 presents gluten peptides to T cells in a way that triggers autoimmune intestinal damage.'},
+      {rsid:'rs7775228', riskAllele:'C', beta:0.588, alleles:['G','C'], gene:'HLA-DQB1', desc:'Second HLA-DQ2 component. The full DQ2 heterodimer (DQA1+DQB1 together) is required for maximum gluten peptide presentation to the immune system.'},
+      {rsid:'rs13151961',riskAllele:'C', beta:0.378, alleles:['G','C'], gene:'IL2/IL21',  desc:'IL2/IL21 cytokine region — regulates T-cell activation in the gut. Risk allele amplifies the inflammatory response to gluten-derived peptides.'},
+    ],
+    lifestyle:[
+      {category:'Strict gluten-free diet', description:'The only treatment for celiac disease. Even small amounts of gluten (10–50mg, less than a crumb) can trigger intestinal damage. Strict adherence is required.'},
+      {category:'Cross-contamination awareness', description:'Shared cooking surfaces, toasters, and utensils can transmit gluten. Dedicated equipment and restaurant awareness are essential for symptom control.'},
+      {category:'Nutritional monitoring', description:'Celiac disease impairs absorption of iron, calcium, vitamin D, B12, and folate. Annual blood tests to monitor levels and supplement as needed.'},
+      {category:'Bone health', description:'Chronic malabsorption increases osteoporosis risk. Adequate calcium and vitamin D supplementation on a gluten-free diet is important from diagnosis.'},
+      {category:'Annual review', description:'Antibody testing (tTG-IgA) annually confirms dietary adherence. Persistent antibodies indicate hidden gluten exposure.'},
+    ],
+  },
+  type1_diabetes: {
+    popMean:0.905, popSD:0.450,
+    variants:[
+      {rsid:'rs2476601', riskAllele:'A', beta:0.626, alleles:['G','A'], gene:'PTPN22',  desc:'PTPN22 is a key regulator of T-cell activation. Risk allele makes T cells hyperreactive, increasing the likelihood of autoimmune attack on pancreatic beta cells.'},
+      {rsid:'rs689',     riskAllele:'A', beta:0.794, alleles:['T','A'], gene:'INS',     desc:'Insulin gene region — affects how much insulin is expressed in the thymus during immune development. Lower thymic expression leads to poorer immune tolerance of insulin.'},
+      {rsid:'rs9272346', riskAllele:'A', beta:0.698, alleles:['G','A'], gene:'HLA-DQA1', desc:'HLA-DQ8 component — the second major HLA haplotype associated with T1D. Presents insulin and other islet antigens to autoreactive T cells.'},
+    ],
+    lifestyle:[
+      {category:'Insulin therapy', description:'Type 1 diabetes requires insulin — lifestyle alone cannot replace it. Continuous glucose monitors (CGM) and insulin pumps dramatically improve glucose control and quality of life.'},
+      {category:'Carbohydrate counting', description:'Matching insulin dose to carbohydrate intake is the core management skill. CGM provides real-time feedback for refining this balance.'},
+      {category:'Physical activity', description:'Exercise improves insulin sensitivity but requires careful glucose management before, during, and after activity. Discuss with your diabetes team.'},
+      {category:'Hypoglycemia preparedness', description:'Always carry fast-acting glucose. Ensure close contacts know about glucagon administration. CGM alarms reduce severe hypoglycemia risk substantially.'},
+      {category:'Annual screening', description:'Screen annually for T1D complications: HbA1c, kidney function, eye exam, blood pressure, foot check, lipid panel.'},
+    ],
+  },
+  rheumatoid_arthritis: {
+    popMean:1.279, popSD:0.620,
+    variants:[
+      {rsid:'rs2476601', riskAllele:'A', beta:0.554, alleles:['G','A'], gene:'PTPN22',  desc:'PTPN22 loss-of-function makes T cells hyperreactive — same gene implicated in T1D and lupus. RA risk is multiplied 1.7× per risk allele.'},
+      {rsid:'rs6457617', riskAllele:'A', beta:1.386, alleles:['G','A'], gene:'HLA-DRB1', desc:'HLA-DRB1 shared epitope — the largest genetic risk factor for RA. The shared epitope presents citrullinated peptides to T cells, triggering anti-CCP antibody production that damages joint tissue.'},
+      {rsid:'rs10760130',riskAllele:'A', beta:0.174, alleles:['G','A'], gene:'TRAF1/C5',  desc:'TRAF1 and complement component C5 interact at this locus. Risk allele amplifies NF-κB signalling in synovial fibroblasts, sustaining joint inflammation.'},
+    ],
+    lifestyle:[
+      {category:'Smoking cessation', description:'Smoking is the strongest environmental RA risk factor — 2× risk increase. Smoking also worsens disease severity and reduces medication effectiveness.'},
+      {category:'Exercise', description:'Regular low-impact exercise (swimming, cycling, walking) preserves joint function and reduces pain without accelerating joint damage.'},
+      {category:'Anti-inflammatory diet', description:'Mediterranean diet is associated with lower RA disease activity scores in multiple studies. Omega-3 fatty acids have direct anti-inflammatory effects on synovial tissue.'},
+      {category:'Early treatment', description:'Early aggressive treatment ("treat to target") dramatically reduces long-term joint damage. If diagnosed, discuss DMARD therapy promptly rather than waiting.'},
+      {category:'Weight management', description:'Obesity worsens RA disease activity and reduces response to biologic medications. Even modest weight reduction improves outcomes.'},
+    ],
+  },
+  lupus: {
+    popMean:0.606, popSD:0.310,
+    variants:[
+      {rsid:'rs9271366', riskAllele:'A', beta:0.693, alleles:['G','A'], gene:'HLA-DRB1', desc:'HLA-DRB1 presents self-antigens (particularly nuclear DNA fragments) to autoreactive T cells — the core mechanism in lupus autoimmunity.'},
+      {rsid:'rs2187668', riskAllele:'A', beta:0.495, alleles:['G','A'], gene:'HLA-DQA1', desc:'HLA-DQ2 component contributes to antinuclear antibody (ANA) production that characterises lupus and drives multi-organ inflammation.'},
+      {rsid:'rs2476601', riskAllele:'A', beta:0.444, alleles:['G','A'], gene:'PTPN22',   desc:'PTPN22 hyperactivates T cells — a shared mechanism with RA and T1D, explaining the overlap between these autoimmune conditions.'},
+    ],
+    lifestyle:[
+      {category:'Sun protection', description:'UV light triggers lupus flares by causing DNA damage in skin cells that activates the immune system. SPF 50+ sunscreen and protective clothing are essential outdoors.'},
+      {category:'Stress management', description:'Psychological stress is one of the most common lupus flare triggers. Regular stress-reduction practices help maintain remission.'},
+      {category:'Medication adherence', description:'Hydroxychloroquine prevents organ damage and flares — its benefits compound over years. Regular monitoring for rare eye side effects is important.'},
+      {category:'Vitamin D supplementation', description:'Vitamin D deficiency is common in lupus due to sun avoidance and the disease itself. Supplementation reduces flare frequency.'},
+      {category:'Regular monitoring', description:'Urine protein, complement levels (C3/C4), and anti-dsDNA antibodies detect kidney involvement early — before symptoms develop.'},
+    ],
+  },
+  crohns_disease: {
+    popMean:0.244, popSD:0.145,
+    variants:[
+      {rsid:'rs2066844',  riskAllele:'T', beta:0.444, alleles:['C','T'], gene:'NOD2',   desc:'NOD2 is an intracellular bacterial sensor in intestinal cells. Risk allele impairs the mucosal barrier response to gut bacteria, triggering chronic inflammation in susceptible individuals.'},
+      {rsid:'rs11209026', riskAllele:'G', beta:0.462, alleles:['A','G'], gene:'IL23R',   desc:'IL-23 receptor protective variant — the G allele reduces IL-23 signalling. This is actually protective against Crohn\'s; fewer G alleles = higher risk. (Beta shown as risk-direction equivalent.)'},
+      {rsid:'rs9858542',  riskAllele:'A', beta:0.182, alleles:['G','A'], gene:'MST1',    desc:'Macrophage-stimulating 1 protein regulates intestinal macrophage differentiation and barrier repair. Risk allele impairs mucosal healing after inflammation.'},
+    ],
+    lifestyle:[
+      {category:'Smoking cessation', description:'Smoking worsens Crohn\'s disease severity and frequency of flares — unlike UC (where it is paradoxically protective). Cessation is strongly recommended.'},
+      {category:'Diet adaptation', description:'No single diet cures Crohn\'s, but identifying personal trigger foods through an elimination approach reduces symptoms. Low-residue diet during flares reduces bowel workload.'},
+      {category:'Stress management', description:'Stress is a well-established Crohn\'s flare trigger through gut-brain axis and inflammatory pathways. Psychological support is a legitimate part of treatment.'},
+      {category:'Medication adherence', description:'Biologic therapies (anti-TNF, anti-IL-12/23, anti-integrins) maintain remission in 50–60% of patients. Adherence is critical for preventing structural damage.'},
+      {category:'Nutritional support', description:'Crohn\'s causes malabsorption of iron, B12, vitamin D, and zinc. Regular blood tests and targeted supplementation are standard of care.'},
+    ],
+  },
+  psoriasis: {
+    popMean:0.324, popSD:0.350,
+    variants:[
+      {rsid:'rs12191877', riskAllele:'T', beta:1.182, alleles:['C','T'], gene:'HLA-C',  desc:'HLA-Cw6 is present in ~65% of early-onset psoriasis. It presents keratinocyte self-peptides to skin T cells, triggering the keratinocyte hyperproliferation that causes psoriatic plaques.'},
+      {rsid:'rs4085613',  riskAllele:'C', beta:0.416, alleles:['A','C'], gene:'ERAP1',  desc:'ERAP1 trims peptides before HLA presentation. Risk allele alters the peptide repertoire presented by HLA-C, amplifying autoimmune skin responses.'},
+      {rsid:'rs2201841',  riskAllele:'T', beta:0.365, alleles:['C','T'], gene:'IL23R',  desc:'IL-23 receptor promotes Th17 cell differentiation. Risk allele increases IL-17 signalling — the same pathway targeted by the most effective biologic psoriasis treatments.'},
+    ],
+    lifestyle:[
+      {category:'Smoking cessation', description:'Smoking is associated with more severe psoriasis and poorer treatment response. Cessation improves disease control independently of other interventions.'},
+      {category:'Alcohol reduction', description:'Alcohol worsens psoriasis directly (through immunological effects) and indirectly (by reducing medication effectiveness and increasing side effect risk).'},
+      {category:'Weight management', description:'Obesity worsens psoriasis severity and reduces biologic medication response. Even 5% weight loss improves disease activity scores.'},
+      {category:'Stress management', description:'Psychological stress triggers psoriasis flares through neuroimmune pathways. Mindfulness-based stress reduction shows specific benefit in psoriasis.'},
+      {category:'Moisturisation', description:'Regular emollient use prevents the Koebner phenomenon (trauma triggering new plaques) and reduces symptom burden between treatment cycles.'},
+    ],
+  },
+  ankylosing_spondylitis: {
+    popMean:0.844, popSD:0.260,
+    variants:[
+      {rsid:'rs13202464', riskAllele:'C', beta:0.372, alleles:['T','C'], gene:'ERAP1',    desc:'ERAP1 variants in AS work through HLA-B27 peptide presentation. Risk allele alters the peptide repertoire displayed to T cells at sacroiliac joints, sustaining inflammation.'},
+      {rsid:'rs10865331', riskAllele:'T', beta:0.174, alleles:['C','T'], gene:'TNFRSF1A', desc:'TNF receptor 1 — variations affect TNF signalling in spinal entheses, directly relevant since anti-TNF biologics are the main AS treatment.'},
+      {rsid:'rs4389526',  riskAllele:'A', beta:0.157, alleles:['G','A'], gene:'IL12B',    desc:'IL-12B drives Th1 immune responses that promote spinal inflammation. Risk allele increases IL-12 production at entheses (attachment points of tendons to bone).'},
+    ],
+    lifestyle:[
+      {category:'Physical therapy', description:'Regular spinal extension exercises are the single most evidence-based intervention in AS — they preserve spinal flexibility and delay fusion. Daily exercise is standard of care.'},
+      {category:'Swimming and aquatic exercise', description:'Non-impact exercise is ideal for inflamed joints. Swimming maintains spinal range of motion without axial loading.'},
+      {category:'Posture awareness', description:'Sleep on a firm mattress without a pillow; sit upright; avoid prolonged flexed-spine postures. Spinal fusion tends to occur in the position most commonly maintained.'},
+      {category:'Smoking cessation', description:'Smoking is associated with more severe AS and faster radiographic progression of spinal fusion.'},
+      {category:'Early biologic therapy', description:'TNF inhibitors and IL-17 inhibitors prevent structural damage far more effectively when started early. Discuss with a rheumatologist if AS is diagnosed.'},
+    ],
+  },
+  thyroid_autoimmune: {
+    popMean:0.424, popSD:0.195,
+    variants:[
+      {rsid:'rs2476601', riskAllele:'A', beta:0.554, alleles:['G','A'], gene:'PTPN22', desc:'PTPN22 risk allele causes T-cell hyperreactivity — the same mechanism driving thyroid-specific autoantibody production in Hashimoto\'s and Graves\' disease.'},
+      {rsid:'rs2292239', riskAllele:'T', beta:0.262, alleles:['C','T'], gene:'ERBB3',  desc:'ERBB3 (HER3) is expressed on thyroid follicular cells. Risk variants alter tyrosine kinase signalling that regulates thyroid cell survival under immune attack.'},
+      {rsid:'rs6679677', riskAllele:'A', beta:0.519, alleles:['G','A'], gene:'RSBN1',  desc:'Near PTPN22, this variant contributes to T-cell tolerance defects affecting thyroid-specific lymphocyte activation.'},
+    ],
+    lifestyle:[
+      {category:'Iodine balance', description:'Both iodine deficiency and excess can trigger thyroid autoimmunity. Stick to recommended intakes; avoid high-dose iodine supplements unless medically indicated.'},
+      {category:'Selenium supplementation', description:'Selenium is essential for thyroid hormone metabolism. Supplementation (200µg/day) reduces thyroid antibody levels and improves thyroid function in Hashimoto\'s patients.'},
+      {category:'Stress management', description:'Emotional stress can trigger and worsen thyroid autoimmunity through immune-neuroendocrine interactions. Stress is a documented trigger of Graves\' disease onset.'},
+      {category:'Gluten awareness', description:'Celiac disease co-occurs with thyroid autoimmunity at high rates. If you have both risk profiles, coeliac screening and a gluten-free trial may be worthwhile.'},
+      {category:'Regular monitoring', description:'Annual TSH and free T4 testing detects subclinical thyroid dysfunction before symptoms develop. Anti-TPO antibodies indicate autoimmune activity.'},
+    ],
+  },
+  asthma: {
+    popMean:0.994, popSD:0.280,
+    variants:[
+      {rsid:'rs8076131', riskAllele:'C', beta:0.372, alleles:['T','C'], gene:'ORMDL3',  desc:'ORMDL3 regulates ER stress and sphingolipid metabolism in airway epithelial cells. The 17q21 locus is the strongest and most replicated asthma risk region — especially for childhood-onset disease.'},
+      {rsid:'rs7216389', riskAllele:'T', beta:0.351, alleles:['C','T'], gene:'GSDMB',   desc:'Gasdermin B is involved in airway epithelial cell pyroptosis (inflammatory cell death). Risk allele increases airway inflammation and bronchial hyperresponsiveness.'},
+      {rsid:'rs2305480', riskAllele:'G', beta:0.278, alleles:['A','G'], gene:'GSDMB',   desc:'Second independent GSDMB variant at 17q21, with additive effect on asthma risk through overlapping airway inflammation mechanisms.'},
+    ],
+    lifestyle:[
+      {category:'Allergen avoidance', description:'Identify and minimise exposure to personal asthma triggers: dust mites, pet dander, mould, pollen, cockroaches. HEPA air filters and dust-mite covers show evidence of benefit.'},
+      {category:'Smoking cessation', description:'Smoking worsens asthma severity and accelerates lung function decline. Second-hand smoke exposure is particularly harmful for children with asthma.'},
+      {category:'Exercise with appropriate management', description:'Physical activity is beneficial for lung fitness but may trigger exercise-induced bronchoconstriction. Pre-exercise bronchodilator use enables full participation.'},
+      {category:'Inhaler technique', description:'Up to 90% of inhaler users have suboptimal technique. Ask a pharmacist or nurse to review your technique — it affects medication delivery dramatically.'},
+      {category:'Weight management', description:'Obesity worsens asthma control through mechanical and inflammatory mechanisms. Weight loss improves lung function and reduces exacerbations in overweight patients.'},
+    ],
+  },
+  eczema: {
+    popMean:0.331, popSD:0.180,
+    variants:[
+      {rsid:'rs11121129', riskAllele:'A', beta:0.571, alleles:['G','A'], gene:'FLG', desc:'Filaggrin is the main structural protein of the skin barrier. Null mutations cause a "leaky skin" that allows allergen entry and water loss — the primary mechanism of atopic dermatitis.'},
+      {rsid:'rs877776',   riskAllele:'C', beta:0.365, alleles:['T','C'], gene:'FLG', desc:'Second filaggrin variant with independent effect on barrier function. Compound heterozygosity (both variants) causes more severe and persistent eczema.'},
+      {rsid:'rs2164983',  riskAllele:'A', beta:0.322, alleles:['G','A'], gene:'FLG', desc:'Third FLG region variant affecting filaggrin expression levels in the epidermis, contributing to the skin barrier disruption that drives sensitisation.'},
+    ],
+    lifestyle:[
+      {category:'Moisturisation', description:'Twice-daily emollient application is the cornerstone of eczema management. It restores the physical barrier, reduces flares, and decreases topical steroid requirements.'},
+      {category:'Trigger avoidance', description:'Common triggers: soap/detergent contact, synthetic fabrics, fragranced products, overheating, stress, certain foods in children. Identifying and avoiding personal triggers reduces flare frequency.'},
+      {category:'Wet wrap therapy', description:'Wet bandaging after moisturiser application dramatically reduces inflammation during flares. Can be done at home with medical guidance.'},
+      {category:'Probiotic supplementation', description:'Lactobacillus supplementation in early infancy reduces eczema incidence in high-risk children. Evidence is strongest for prevention rather than treatment.'},
+      {category:'Bleach bath therapy', description:'Twice-weekly dilute bleach baths (0.005%) reduce Staphylococcus aureus skin colonisation that worsens eczema inflammation.'},
+    ],
+  },
+  breast_cancer: {
+    popMean:0.510, popSD:0.195,
+    variants:[
+      {rsid:'rs2981582', riskAllele:'T', beta:0.231, alleles:['C','T'], gene:'FGFR2',   desc:'Fibroblast growth factor receptor 2 — the strongest common breast cancer susceptibility locus. Risk allele increases FGFR2 expression in breast epithelial cells, promoting proliferation in response to estrogen.'},
+      {rsid:'rs3803662', riskAllele:'T', beta:0.182, alleles:['C','T'], gene:'TOX3',    desc:'TOX3 regulates chromatin remodelling in breast cells and TP53 binding — affecting cell cycle control and DNA repair in mammary epithelium.'},
+      {rsid:'rs13387042',riskAllele:'A', beta:0.174, alleles:['G','A'], gene:'2q35',    desc:'2q35 intergenic risk locus — regulatory elements here influence expression of IGFBP5 and TNP1, which affect breast cell proliferation and differentiation.'},
+      {rsid:'rs889312',  riskAllele:'C', beta:0.122, alleles:['A','C'], gene:'MAP3K1',  desc:'MAP3K1 is a kinase in estrogen receptor signalling pathways. Risk allele alters ER-alpha activity in breast tissue, affecting tamoxifen sensitivity.'},
+    ],
+    lifestyle:[
+      {category:'Alcohol reduction', description:'Alcohol is the most clearly established lifestyle breast cancer risk factor. Each drink per day increases risk by ~7–10%. Reduction shows dose-response benefit.'},
+      {category:'Physical activity', description:'150 min/week of moderate activity reduces breast cancer risk by 10–20% through estrogen metabolism and immune function effects.'},
+      {category:'Weight management', description:'Postmenopausal obesity increases breast cancer risk through higher circulating estrogen from adipose tissue aromatisation. Risk reduction is greatest with weight loss in this age group.'},
+      {category:'Breastfeeding', description:'Each year of breastfeeding reduces breast cancer risk by ~4–5% through hormonal and cellular changes in mammary tissue.'},
+      {category:'Regular screening', description:'Annual mammograms from age 40 (or earlier with family history/high genetic risk) improve survival through early detection. Discuss screening schedule with your doctor.'},
+    ],
+  },
+  ovarian_cancer: {
+    popMean:0.335, popSD:0.130,
+    variants:[
+      {rsid:'rs2072590',  riskAllele:'A', beta:0.157, alleles:['G','A'], gene:'HOXD3',  desc:'HOXD3 is a homeobox transcription factor that regulates ovarian cell differentiation. Risk allele affects epithelial-to-mesenchymal transition in ovarian cells.'},
+      {rsid:'rs752590',   riskAllele:'C', beta:0.113, alleles:['T','C'], gene:'TIPARP',  desc:'TIPARP is an ADP-ribosylase that regulates dioxin receptor signalling. Risk allele affects cellular stress responses in ovarian epithelium.'},
+      {rsid:'rs10088218', riskAllele:'T', beta:0.199, alleles:['C','T'], gene:'8q24',   desc:'8q24 is a "gene desert" that nevertheless contains long-range regulatory elements affecting MYC expression in ovarian cells.'},
+    ],
+    lifestyle:[
+      {category:'Oral contraceptive use', description:'Combined oral contraceptives reduce ovarian cancer risk by ~50% with 5+ years of use — the effect persists for decades after stopping. Discuss with your doctor if appropriate for you.'},
+      {category:'Breastfeeding', description:'Each month of breastfeeding reduces ovarian cancer risk by ~2%. Cumulative lifetime breastfeeding is protective through hormonal effects on ovarian cycling.'},
+      {category:'Physical activity', description:'Regular exercise reduces ovarian cancer risk by ~20% through hormonal, inflammatory, and immune function mechanisms.'},
+      {category:'Talcum powder avoidance', description:'Perineal talc use has been associated with slightly elevated ovarian cancer risk in some studies — avoidance is reasonable as a precaution.'},
+      {category:'CA-125 screening awareness', description:'CA-125 blood test detects ovarian cancer but has high false-positive rates as a standalone screen. Discuss with your doctor if you have elevated genetic or family risk.'},
+    ],
+  },
+  prostate_cancer: {
+    popMean:0.690, popSD:0.230,
+    variants:[
+      {rsid:'rs1447295',  riskAllele:'A', beta:0.365, alleles:['C','A'], gene:'8q24',    desc:'8q24 — the most replicated prostate cancer locus. Regulatory elements here increase MYC oncogene expression in prostate cells under androgen stimulation.'},
+      {rsid:'rs10993994', riskAllele:'T', beta:0.285, alleles:['C','T'], gene:'MSMB',    desc:'Microseminoprotein-beta is a prostate-specific protein. Risk allele reduces MSMB expression, removing its tumour-suppressive effects in prostate epithelium.'},
+      {rsid:'rs4430796',  riskAllele:'G', beta:0.199, alleles:['A','G'], gene:'HNF1B',   desc:'HNF1B transcription factor affects prostate cell differentiation. Risk allele is associated with clear-cell prostate cancer subtypes.'},
+      {rsid:'rs6983267',  riskAllele:'G', beta:0.191, alleles:['T','G'], gene:'8q24',    desc:'Second independent 8q24 prostate cancer risk variant, confirmed across European, African, and Asian populations.'},
+    ],
+    lifestyle:[
+      {category:'Diet', description:'Low saturated fat, high plant-based diet reduces prostate cancer progression risk. Lycopene (cooked tomatoes), cruciferous vegetables, and green tea show epidemiological associations with reduced risk.'},
+      {category:'Physical activity', description:'Regular vigorous exercise reduces prostate cancer mortality by ~30%, particularly for aggressive cancers. The effect is strongest for high-intensity activity.'},
+      {category:'PSA screening discussion', description:'PSA testing (with free PSA ratio) detects prostate cancer early but involves overdiagnosis trade-offs. Discuss personalised screening starting at 50 (or 45 with elevated genetic risk).'},
+      {category:'Weight management', description:'Obesity is associated with more aggressive prostate cancer and worse outcomes after treatment. Weight management improves prognosis independently of other factors.'},
+      {category:'Aspirin', description:'Regular low-dose aspirin use is associated with reduced prostate cancer mortality in multiple studies, possibly through anti-inflammatory mechanisms. Discuss with your doctor.'},
+    ],
+  },
+  colorectal_cancer: {
+    popMean:0.518, popSD:0.165,
+    variants:[
+      {rsid:'rs6983267',  riskAllele:'G', beta:0.191, alleles:['T','G'], gene:'8q24',    desc:'8q24 intergenic locus — regulatory elements here control MYC expression in colon epithelium. The strongest common CRC susceptibility signal.'},
+      {rsid:'rs4939827',  riskAllele:'T', beta:0.182, alleles:['C','T'], gene:'SMAD7',   desc:'SMAD7 inhibits TGF-beta signalling, which normally suppresses colon epithelial proliferation and promotes apoptosis. Risk allele increases SMAD7 expression, blocking this tumour-suppressive pathway.'},
+      {rsid:'rs10795668', riskAllele:'G', beta:0.166, alleles:['A','G'], gene:'10p14',   desc:'10p14 regulatory locus — long-range effects on GATA3 expression in colon epithelium, affecting epithelial differentiation and tumour suppression.'},
+      {rsid:'rs3802842',  riskAllele:'C', beta:0.104, alleles:['A','C'], gene:'11q23',   desc:'11q23 region contains regulatory elements affecting COLCA1/COLCA2 expression — novel CRC susceptibility genes identified in large meta-analyses.'},
+    ],
+    lifestyle:[
+      {category:'Dietary fibre', description:'Each 10g/day increase in fibre reduces colorectal cancer risk by ~10%. Fibre feeds gut bacteria producing butyrate, which maintains colonocyte health and suppresses tumourigenesis.'},
+      {category:'Red and processed meat reduction', description:'Processed meat is a Group 1 IARC carcinogen for CRC; red meat is Group 2A. Limiting to <500g red meat/week and minimising processed meat substantially reduces risk.'},
+      {category:'Regular colonoscopy', description:'Colonoscopy removes precancerous polyps before they become cancer — one of the most effective cancer prevention interventions. Start at 45–50; earlier with elevated risk or family history.'},
+      {category:'Physical activity', description:'The most consistently supported lifestyle intervention for CRC prevention. 150 min/week reduces risk by 20–25% through effects on insulin, inflammation, and bowel transit time.'},
+      {category:'Aspirin', description:'Regular aspirin use reduces CRC risk by ~40% in large cohort studies. Particularly relevant for high-genetic-risk individuals — discuss risk-benefit with your doctor.'},
+    ],
   },
   age_related_macular_degeneration: {
-    // Betas: Fritsche et al., Nat Genet 2016; Klein et al., Science 2005
-    popMean: 0.889, popSD: 0.701,
-    variants: [
+    popMean:0.889, popSD:0.701,
+    variants:[
       {rsid:'rs1061170',  riskAllele:'C', beta:0.854, alleles:['T','C'], gene:'CFH',        desc:'Complement Factor H — controls inflammation in the retina. Risk allele weakens the "off switch", allowing chronic low-grade inflammation to damage the macula.'},
       {rsid:'rs10490924', riskAllele:'T', beta:0.693, alleles:['G','T'], gene:'ARMS2/HTRA1', desc:'Located near genes involved in mitochondrial function in the retinal pigment epithelium. One of the strongest AMD risk signals outside CFH.'},
+    ],
+    lifestyle:[
+      {category:'Smoking cessation', description:'Smokers have 2–4× higher AMD risk regardless of genetics. Cessation at any age brings risk toward non-smoker levels.'},
+      {category:'AREDS2 supplements', description:'Vitamins C, E, zinc, lutein, and zeaxanthin reduce AMD progression risk by 25% in at-risk individuals. Ask your ophthalmologist.'},
+      {category:'UV protection', description:'UV-blocking sunglasses reduce cumulative retinal UV exposure, supported by cohort studies as a protective measure.'},
+      {category:'Blood pressure control', description:'Hypertension is associated with AMD progression through effects on choroidal blood flow.'},
+    ],
+  },
+  glaucoma: {
+    popMean:0.480, popSD:0.195,
+    variants:[
+      {rsid:'rs4236601',  riskAllele:'A', beta:0.307, alleles:['G','A'], gene:'CAV1/CAV2', desc:'Caveolin-1 and -2 regulate aqueous humor drainage from the eye. Risk allele impairs the trabecular meshwork drainage system, increasing intraocular pressure.'},
+      {rsid:'rs10483727', riskAllele:'A', beta:0.278, alleles:['G','A'], gene:'SIX1/SIX6', desc:'SIX6 regulates retinal ganglion cell development and optic disc area. Risk allele increases glaucoma susceptibility through reduced ganglion cell reserve.'},
+      {rsid:'rs1533428',  riskAllele:'G', beta:0.199, alleles:['A','G'], gene:'GAS7',      desc:'GAS7 is expressed in retinal ganglion cells and affects cytoskeletal organisation. Risk allele impairs ganglion cell resilience to intraocular pressure.'},
+    ],
+    lifestyle:[
+      {category:'Regular eye pressure monitoring', description:'Annual intraocular pressure checks and optic nerve assessment are the main early detection tools. Ask for these specifically at eye exams.'},
+      {category:'Exercise', description:'Regular moderate aerobic exercise reduces intraocular pressure by 2–3 mmHg on average and improves optic nerve perfusion.'},
+      {category:'Avoid inversion', description:'Yoga inversions, headstands, and playing wind instruments significantly raise intraocular pressure acutely. Avoid or limit these activities.'},
+      {category:'Caffeine moderation', description:'Excessive caffeine raises intraocular pressure temporarily. Moderate intake (1–2 cups/day) appears safe; heavy intake may be worth reducing.'},
+      {category:'Eye drop adherence', description:'If prescribed IOP-lowering drops, adherence is the single most important glaucoma management factor. Poor adherence is the primary cause of preventable vision loss.'},
+    ],
+  },
+  chronic_kidney_disease: {
+    popMean:0.197, popSD:0.090,
+    variants:[
+      {rsid:'rs10203727', riskAllele:'A', beta:0.131, alleles:['G','A'], gene:'UMOD',    desc:'Uromodulin is the most abundant urinary protein and regulates tubular ion transport. Risk allele reduces UMOD expression, impairing the kidney\'s ability to maintain salt-water balance.'},
+      {rsid:'rs2453580',  riskAllele:'C', beta:0.131, alleles:['T','C'], gene:'DACH1',   desc:'DACH1 is a transcription factor expressed in kidney tubule cells. Risk variants reduce tubular cell regeneration capacity after injury.'},
+      {rsid:'rs11959928', riskAllele:'C', beta:0.140, alleles:['T','C'], gene:'SLC34A1', desc:'Sodium-phosphate cotransporter in kidney proximal tubules. Risk allele affects phosphate reabsorption, influencing kidney workload and long-term function.'},
+    ],
+    lifestyle:[
+      {category:'Blood pressure control', description:'Hypertension is the leading cause of CKD progression. Target <130/80 mmHg — each 10 mmHg systolic reduction slows kidney decline by ~30%.'},
+      {category:'Diabetes control', description:'Diabetes is the leading cause of kidney failure. Tight HbA1c control (<7%) reduces kidney damage progression by ~30%.'},
+      {category:'Dietary protein moderation', description:'High protein intake increases kidney workload. For established CKD, a nephrology dietitian can advise on protein targets to slow progression.'},
+      {category:'Avoid nephrotoxic medications', description:'NSAIDs (ibuprofen, naproxen) and high-contrast imaging agents damage kidneys — especially in already-reduced function. Always inform doctors of your kidney status.'},
+      {category:'Regular kidney function testing', description:'Annual eGFR and urine albumin:creatinine ratio detects CKD before symptoms. These tests enable early intervention that meaningfully slows progression.'},
+    ],
+  },
+  osteoporosis: {
+    popMean:0.330, popSD:0.130,
+    variants:[
+      {rsid:'rs2234693',  riskAllele:'T', beta:0.131, alleles:['C','T'], gene:'ESR1',    desc:'Estrogen receptor alpha — estrogen is the primary regulator of bone density. Risk allele reduces estrogen receptor sensitivity, impairing estrogen-driven bone maintenance.'},
+      {rsid:'rs9594759',  riskAllele:'T', beta:0.166, alleles:['C','T'], gene:'TNFSF11', desc:'RANKL (receptor activator of NF-κB ligand) stimulates osteoclast activity — the cells that break down bone. Risk allele increases RANKL expression, tipping the balance toward bone resorption.'},
+      {rsid:'rs4988300',  riskAllele:'T', beta:0.199, alleles:['C','T'], gene:'LRP5',    desc:'LRP5 co-receptor in the Wnt signalling pathway, which drives osteoblast (bone-building cell) activity. Risk allele reduces bone formation signalling.'},
+      {rsid:'rs3736228',  riskAllele:'T', beta:0.215, alleles:['C','T'], gene:'LRP5',    desc:'Second LRP5 variant, additively reducing Wnt-pathway bone formation capacity. LRP5 is the target of some emerging osteoporosis therapeutics.'},
+    ],
+    lifestyle:[
+      {category:'Weight-bearing exercise', description:'Walking, jogging, dancing, and resistance training all stimulate bone formation. 30 min of weight-bearing exercise daily measurably increases bone density.'},
+      {category:'Calcium and vitamin D', description:'Adequate calcium (1000–1200mg/day from food + supplements if needed) and vitamin D (800–1000 IU/day) are foundational. Deficiency accelerates bone loss at any age.'},
+      {category:'Smoking cessation', description:'Smoking impairs calcium absorption and reduces estrogen levels — both accelerate bone loss. Cessation arrests this effect.'},
+      {category:'Alcohol moderation', description:'More than 2 drinks/day reduces bone density and increases fracture risk. Moderation (≤1 drink/day) has minimal impact.'},
+      {category:'DEXA scan', description:'Bone density scanning (DEXA) is recommended at age 65 for women (earlier with risk factors). It directly measures fracture risk and guides treatment decisions.'},
+    ],
+  },
+  gout: {
+    popMean:0.771, popSD:0.360,
+    variants:[
+      {rsid:'rs2231142', riskAllele:'T', beta:0.811, alleles:['C','T'], gene:'ABCG2',    desc:'ABCG2 is a uric acid secretion transporter in the gut and kidney. The T allele (Q141K) reduces transport capacity by ~50%, causing uric acid to build up in the blood and deposit as crystals in joints.'},
+      {rsid:'rs4607517', riskAllele:'A', beta:0.519, alleles:['G','A'], gene:'SLC2A9',   desc:'SLC2A9 is the main kidney uric acid reabsorption transporter. Risk allele increases reabsorption of uric acid from filtered urine, raising serum urate levels.'},
+      {rsid:'rs742132',  riskAllele:'A', beta:0.336, alleles:['G','A'], gene:'SLC22A11', desc:'OAT4 organic anion transporter affects renal uric acid handling. Risk allele reduces uric acid secretion, contributing to hyperuricemia.'},
+    ],
+    lifestyle:[
+      {category:'Dietary purine reduction', description:'High-purine foods (red meat, organ meats, shellfish, anchovies) raise uric acid. Reduction substantially lowers serum urate and attack frequency.'},
+      {category:'Alcohol — especially beer', description:'Beer contains purines and stimulates uric acid production. Even moderate beer intake significantly raises gout attack risk. Wine has a smaller effect.'},
+      {category:'Hydration', description:'High fluid intake (2–3L/day) dilutes uric acid in blood and urine, reducing crystal deposition risk. Water is optimal; avoid sugary beverages.'},
+      {category:'Fructose avoidance', description:'Fructose (from sugary drinks and fruit juice) raises uric acid more than other sugars by stimulating purine metabolism. Limit sweetened beverages specifically.'},
+      {category:'Weight management', description:'Obesity raises uric acid through increased production and reduced excretion. Each 5kg weight loss reduces serum urate by ~0.5 mg/dL.'},
+    ],
+  },
+  nafld: {
+    popMean:0.614, popSD:0.330,
+    variants:[
+      {rsid:'rs738409',   riskAllele:'G', beta:0.806, alleles:['C','G'], gene:'PNPLA3',  desc:'PNPLA3 (adiponutrin) is the strongest NAFLD genetic signal. The G allele (I148M) impairs fat removal from liver cells — each G allele increases liver fat by ~25–30%.'},
+      {rsid:'rs58542926', riskAllele:'T', beta:0.501, alleles:['C','T'], gene:'TM6SF2',  desc:'TM6SF2 regulates very-low-density lipoprotein secretion from the liver. T allele causes fat to be retained in liver cells rather than exported, directly causing steatosis.'},
+      {rsid:'rs1260326',  riskAllele:'T', beta:0.191, alleles:['C','T'], gene:'GCKR',    desc:'Glucokinase regulator affects glucose uptake and de novo lipogenesis in the liver. Risk allele increases liver fat synthesis from carbohydrates, especially fructose.'},
+    ],
+    lifestyle:[
+      {category:'Weight loss', description:'5–10% body weight loss resolves steatohepatitis (NASH) in ~40% of patients and reduces fibrosis. Weight loss is the most effective NAFLD treatment available.'},
+      {category:'Sugar and fructose reduction', description:'Fructose drives hepatic de novo lipogenesis — the same pathway the GCKR variant amplifies. Cutting sugary drinks and added sugars has direct, measurable effects on liver fat within weeks.'},
+      {category:'Coffee consumption', description:'2–3 cups of coffee daily is associated with 40% lower NAFLD progression risk in multiple cohort studies — through CYP1A2 and adenosine receptor effects on hepatic inflammation.'},
+      {category:'Physical activity', description:'Aerobic exercise reduces liver fat independently of weight loss. Even without caloric restriction, 150 min/week decreases hepatic steatosis measurably.'},
+      {category:'Alcohol abstinence', description:'Even moderate alcohol accelerates NAFLD progression to cirrhosis. Complete abstinence is recommended for established NAFLD/NASH.'},
     ],
   },
 };
 
 // Known valid alleles for every rsID in our system — used for genotype validation
 const KNOWN_ALLELES = {
+  // T2D
   rs7903146:'TC', rs12255372:'TG', rs4402960:'TG', rs7756992:'AG',
-  rs1111875:'CT', rs13266634:'CG', rs1333049:'CG', rs4977574:'AG',
+  rs1111875:'CT', rs13266634:'CG',
+  // Obesity
+  rs9939609:'TA', rs6567160:'CA', rs1558902:'TA',
+  // CAD
+  rs1333049:'CG', rs4977574:'AG',
+  // AF
+  rs2200733:'CT', rs10033464:'GT', rs3807989:'GA',
+  // Stroke
+  rs505922:'CT', rs1537374:'CT',
+  // Long QT
+  rs2074238:'TC', rs10494366:'TG',
+  // Hypertension
+  rs17367504:'CT', rs5186:'AC', rs16998073:'AT', rs1801253:'CG',
+  // VTE
+  rs6025:'CT', rs1799963:'GA', rs1126643:'TC',
+  // Alzheimer's
+  rs429358:'TC', rs6656401:'GA', rs6733839:'CT', rs10792832:'AG',
+  // Parkinson's
+  rs356220:'CG', rs76904798:'CT', rs6430538:'GA',
+  // Bipolar
+  rs4765913:'CA', rs2251219:'GA', rs1006737:'GA',
+  // Schizophrenia
+  rs1625579:'GT', rs2535629:'GA', rs17662626:'CT',
+  // Depression
+  rs301806:'CT', rs4543289:'CT', rs1021363:'TC',
+  // Migraine
+  rs2651899:'CT', rs10166942:'TC', rs7424630:'AC',
+  // Celiac
+  rs2187668:'GA', rs7775228:'GC', rs13151961:'GC',
+  // T1D
+  rs2476601:'GA', rs689:'TA', rs9272346:'GA',
+  // RA
+  rs6457617:'GA', rs10760130:'GA',
+  // Lupus
+  rs9271366:'GA',
+  // Crohn's
+  rs2066844:'CT', rs11209026:'AG', rs9858542:'GA',
+  // Psoriasis
+  rs12191877:'CT', rs4085613:'AC', rs2201841:'CT',
+  // AS
+  rs13202464:'TC', rs10865331:'CT', rs4389526:'GA',
+  // Thyroid
+  rs2292239:'CT', rs6679677:'GA',
+  // Asthma
+  rs8076131:'TC', rs7216389:'CT', rs2305480:'AG',
+  // Eczema
+  rs11121129:'GA', rs877776:'TC', rs2164983:'GA',
+  // Breast
+  rs2981582:'CT', rs3803662:'CT', rs13387042:'GA', rs889312:'AC',
+  // Ovarian
+  rs2072590:'GA', rs752590:'TC', rs10088218:'CT',
+  // Prostate
+  rs1447295:'CA', rs10993994:'CT', rs4430796:'AG', rs6983267:'TG',
+  // CRC
+  rs4939827:'CT', rs10795668:'AG', rs3802842:'AC',
+  // AMD
   rs1061170:'TC', rs10490924:'GT',
-  rs762551:'AC', rs9939609:'TA', rs4680:'AG', rs1801260:'TC',
+  // Glaucoma
+  rs4236601:'GA', rs10483727:'GA', rs1533428:'AG',
+  // CKD
+  rs10203727:'GA', rs2453580:'TC', rs11959928:'TC',
+  // Osteoporosis
+  rs2234693:'CT', rs9594759:'CT', rs4988300:'CT', rs3736228:'CT',
+  // Gout
+  rs2231142:'CT', rs4607517:'GA', rs742132:'GA',
+  // NAFLD
+  rs738409:'CG', rs58542926:'CT', rs1260326:'CT',
+  // Traits
+  rs762551:'AC', rs4680:'AG', rs1801260:'TC',
   rs1815739:'CT', rs4988235:'AG', rs713598:'CG',
 };
 
@@ -550,9 +1139,8 @@ function validateGenotypeFile(fileContent) {
 }
 
 function computeClientPRS(genotypeMap) {
-  const out = [];
-  for (const disease of Object.keys(PRS_DEFS)) {
-    const def = PRS_DEFS[disease];
+  const all = [];
+  for (const [disease, def] of Object.entries(PRS_DEFS)) {
     let score = 0, foundAny = false;
     const contributions = [];
 
@@ -566,25 +1154,50 @@ function computeClientPRS(genotypeMap) {
       contributions.push({ rsid: v.rsid, riskAllele: v.riskAllele, contribution: contrib, alleleCount: count, gene: v.gene, desc: v.desc, beta: v.beta });
     }
 
-    let pct;
+    let pct, zScore;
     if (foundAny) {
-      const z = (score - def.popMean) / def.popSD;
-      pct = Math.min(99, Math.max(1, Math.round(normalCDF(z) * 100)));
+      zScore = (score - def.popMean) / def.popSD;
+      pct = Math.min(99, Math.max(1, Math.round(normalCDF(zScore) * 100)));
     } else {
-      pct = DEMO[disease].riskInterpretation.percentileApprox;
+      zScore = 0;
+      pct = 50;
     }
 
     const tier = pct < 40 ? 'low' : pct < 70 ? 'moderate' : 'high';
     const totalVariants = def.variants.length;
-    const confidenceLevel = !foundAny ? 'low' : contributions.length >= Math.ceil(totalVariants * 0.7) ? 'high' : 'moderate';
-    const base = DEMO[disease];
-    out.push({
-      ...base,
-      riskInterpretation: { ...base.riskInterpretation, tier, percentileApprox: pct, prsScore: parseFloat(score.toFixed(3)), confidenceLevel },
-      prsResult: { contributions: contributions.length ? contributions : base.prsResult.contributions },
+    const confidenceLevel = !foundAny ? 'low'
+      : contributions.length >= Math.ceil(totalVariants * 0.7) ? 'high' : 'moderate';
+    const name = DISEASE_LABELS[disease] || disease;
+
+    const topC = [...contributions].sort((a,b) => Math.abs(b.contribution)-Math.abs(a.contribution)).slice(0,2);
+    const genePhrase = topC.length
+      ? ` The strongest signals came from ${topC.map(c=>`${c.gene} (${c.rsid})`).join(' and ')}.`
+      : '';
+    const tierPhrase = tier === 'high'
+      ? `above average — your genetic burden for this condition is elevated`
+      : tier === 'low'
+        ? `below average — your genetic data is reassuring for this condition`
+        : `near the population median`;
+
+    const narrative = foundAny
+      ? `<p>Your ${name} risk was assessed across ${totalVariants} GWAS-validated variant${totalVariants>1?'s':''}.${genePhrase} Your polygenic risk score places you at approximately the <strong>${pct}th population percentile</strong> — ${tierPhrase}.</p><p>${contributions.length < totalVariants ? `${contributions.length} of ${totalVariants} variants were present in your file; the remainder were not genotyped.` : `All ${totalVariants} variants were matched in your file.`} Effect sizes are ln(OR) betas from large-scale GWAS meta-analyses.</p>`
+      : `<p>No variants for ${name} were found in your genotype file. A population-average estimate (50th percentile) is shown. Upload a 23andMe or AncestryDNA file for a personalised score.</p>`;
+
+    // Use DEMO narrative for the three diseases that have detailed write-ups
+    const demoEntry = typeof DEMO !== 'undefined' && DEMO[disease];
+    all.push({
+      disease,
+      diseaseName: name,
+      narrative: demoEntry ? demoEntry.narrative : narrative,
+      riskInterpretation: { disease, tier, percentileApprox: pct, prsScore: parseFloat(score.toFixed(3)), confidenceLevel, zScore },
+      lifestyleContext: { disease, factors: def.lifestyle || (demoEntry ? demoEntry.lifestyleContext.factors : []) },
+      prsResult: { contributions },
     });
   }
-  return out;
+
+  // Rank all 34 by z-score, return top 5
+  all.sort((a,b) => (b.riskInterpretation.zScore||0) - (a.riskInterpretation.zScore||0));
+  return all.slice(0, 5);
 }
 
 // ─────────────────────────── TRAIT DEFINITIONS ───────────────────────────
@@ -767,13 +1380,15 @@ function processFile(f) {
 
 // ─────────────────────────── LOADING STEPS ───────────────────────────
 const ALL_STEPS = [
-  {name:'Reading your genetic data',           detail:'Extracting and validating rsIDs…'},
-  {name:'Scanning → Type 2 Diabetes',          detail:'TCF7L2, IGF2BP2, CDKAL1 · querying GWAS Catalog…'},
-  {name:'Scanning → Heart Disease',            detail:'9p21.3 locus · rs1333049, rs4977574…'},
-  {name:'Scanning → Macular Degeneration',     detail:'CFH, ARMS2/HTRA1 · querying GWAS Catalog…'},
-  {name:'AI evaluating evidence quality',      detail:'Applying p<5×10⁻⁸, n≥1000, ancestry filters…'},
-  {name:'Calculating polygenic risk scores',   detail:'Σ log(OR) × allele count per disease…'},
-  {name:'AI writing your risk report',         detail:'Composing ranked analysis for your genotype…'},
+  {name:'Reading your genetic data',              detail:'Extracting and validating rsIDs across 34 conditions…'},
+  {name:'Scanning metabolic conditions',          detail:'T2D, Obesity, NAFLD, Gout, CKD…'},
+  {name:'Scanning cardiovascular conditions',     detail:'CAD, AF, Stroke, HTN, VTE, Long QT…'},
+  {name:'Scanning neurological conditions',       detail:'Alzheimer\'s, Parkinson\'s, Migraine, Depression…'},
+  {name:'Scanning autoimmune conditions',         detail:'Celiac, RA, Lupus, Crohn\'s, Psoriasis, T1D…'},
+  {name:'Scanning cancer & eye conditions',       detail:'Breast, Prostate, CRC, AMD, Glaucoma…'},
+  {name:'AI evaluating evidence quality',         detail:'Applying p<5×10⁻⁸, n≥1,000, ancestry filters…'},
+  {name:'Calculating polygenic risk scores',      detail:'Σ ln(OR) × allele count across all variants…'},
+  {name:'Ranking your top 5 risk conditions',     detail:'Sorting by z-score across population distribution…'},
 ];
 
 const CHECK_SVG = `<svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -823,11 +1438,8 @@ async function startAnalysis() {
 
 function runDemo() {
   state.fileContent = DEMO_FILE_CONTENT;
-  state.genotypeMap = {
-    rs762551: 'CC', rs9939609: 'AT', rs4680: 'AA',
-    rs1801260: 'CC', rs1815739: 'CT', rs4988235: 'GG', rs713598: 'CC'
-  };
-  state.allResults = rankResults(Object.values(DEMO));
+  state.genotypeMap = parseGenotypeMap(DEMO_FILE_CONTENT);
+  state.allResults = rankResults(computeClientPRS(state.genotypeMap));
   showScreen('s-analyze');
   const total = buildAllSteps();
   animateSteps(total, () => renderAllResults(state.allResults));
@@ -839,13 +1451,21 @@ function rankResults(results) {
     const tb = TIER_ORDER[b.riskInterpretation?.tier] ?? 1;
     if (ta !== tb) return ta - tb;
     return (b.riskInterpretation?.percentileApprox || 0) - (a.riskInterpretation?.percentileApprox || 0);
-  });
+  }).slice(0, 5);
 }
 
 // ─────────────────────────── SERVER CALLS ───────────────────────────
 async function callAllDiseases() {
   const fileContent = state.fileContent;
-  const diseases = ['type2_diabetes', 'coronary_artery_disease', 'age_related_macular_degeneration'];
+  const diseases = [
+    'type2_diabetes','obesity','coronary_artery_disease','atrial_fibrillation','stroke',
+    'long_qt_syndrome','hypertension','venous_thromboembolism','alzheimers','parkinsons',
+    'bipolar_disorder','schizophrenia','depression','migraine','celiac_disease',
+    'type1_diabetes','rheumatoid_arthritis','lupus','crohns_disease','psoriasis',
+    'ankylosing_spondylitis','thyroid_autoimmune','asthma','eczema','breast_cancer',
+    'ovarian_cancer','prostate_cancer','colorectal_cancer','age_related_macular_degeneration',
+    'glaucoma','chronic_kidney_disease','osteoporosis','gout','nafld',
+  ];
 
   const initRes = await fetch(`${NITROSTACK_URL}/mcp`, {
     method: 'POST',
@@ -899,7 +1519,7 @@ function renderAllResults(results) {
   const highCount = results.filter(r => r.riskInterpretation?.tier === 'high').length;
   const headline = highCount > 0
     ? `${highCount} elevated risk condition${highCount > 1 ? 's' : ''} found`
-    : '3 conditions analyzed';
+    : 'Top 5 conditions analyzed';
   document.getElementById('results-headline').textContent = headline;
 
   // Build disease cards
@@ -1462,7 +2082,46 @@ const QR = {
   type2_diabetes: ['What does this mean?','What should I do?','Explain the genes','Should I get tested?'],
   coronary_artery_disease: ['What does this mean?','How do I reduce risk?','Explain 9p21.3','Should I see a doctor?'],
   age_related_macular_degeneration: ['What does this mean?','How to prevent it?','What is CFH?','What symptoms to watch for?'],
+  default: ['What does this mean?','What should I do?','Explain the genes','What lifestyle changes help?'],
 };
+
+const GENERIC_RESPONSES = [
+  { k:['mean','explain','what does','understand','result','tell me','what is','overview','summary','condition','disease'],
+    t:[
+      d => { const r = state.allResults?.find(x=>x.disease===d); const pct = r?.riskInterpretation?.percentileApprox||50; const tier = r?.riskInterpretation?.tier||'moderate'; const name = DISEASE_LABELS[d]||d; return `${name} is a condition with established genetic risk factors. Your score places you at approximately the ${pct}th population percentile — ${tier} risk.\n\nThis means your DNA carries ${tier==='high'?'more risk variants than average, which is worth discussing with your doctor':'a typical or below-average genetic burden for this condition'}. Genetic risk is one piece of the picture — lifestyle and environment also matter significantly.`; },
+    ]
+  },
+  { k:['percentile','rank','compared','population','average','score mean','what does the number'],
+    t:[
+      d => { const r = state.allResults?.find(x=>x.disease===d); const pct = r?.riskInterpretation?.percentileApprox||50; return `The ${pct}th percentile means ${pct}% of people carry less genetic risk for this condition than you. It\'s based on your specific combination of GWAS-validated risk variants compared to the population distribution.\n\nGenetic percentile is not a probability of getting the disease — it\'s a relative measure of inherited susceptibility. Most diseases require both genetic predisposition and environmental triggers.`; },
+    ]
+  },
+  { k:['do','reduce','prevent','lifestyle','what should','action','protect','lower risk','change'],
+    t:[
+      d => { const r = state.allResults?.find(x=>x.disease===d); const factors = r?.lifestyleContext?.factors||[]; const name = DISEASE_LABELS[d]||d; if (!factors.length) return `Evidence-based lifestyle factors for ${name} include: maintaining a healthy weight, regular aerobic exercise, not smoking, managing blood pressure and cholesterol, and eating a Mediterranean-style diet. These are effective regardless of your genetic risk level.`; return `Top lifestyle interventions for ${name}:\n\n${factors.slice(0,4).map((f,i)=>`${i+1}. ${f.category}: ${f.description}`).join('\n\n')}`; },
+    ]
+  },
+  { k:['gene','biology','mechanism','variant','snp','rs','what does the','how does'],
+    t:[
+      d => { const def = PRS_DEFS[d]; if (!def) return `The genetic variants used for this analysis come from genome-wide association studies (GWAS) — large-scale studies that identify DNA differences more common in people with a given disease.`; const top = def.variants.slice(0,2); return `The top variants used in this ${DISEASE_LABELS[d]||d} analysis:\n\n${top.map(v=>`${v.gene} (${v.rsid}): ${v.desc}`).join('\n\n')}\n\nAll betas are ln(OR) from published GWAS meta-analyses.`; },
+    ]
+  },
+  { k:['doctor','test','screen','check','specialist','appointment','medical'],
+    t:[
+      d => `For elevated ${DISEASE_LABELS[d]||d} genetic risk, it\'s worth mentioning your results at your next GP or specialist appointment. This kind of polygenic risk information can inform screening frequency and preventive decisions.\n\nBring a summary of your top risk conditions and ask specifically what monitoring or preventive steps are appropriate for your age and family history.`,
+    ]
+  },
+  { k:['worry','scared','concerned','bad','serious','anxious','nervous','afraid','fear'],
+    t:[
+      d => { const r = state.allResults?.find(x=>x.disease===d); const pct = r?.riskInterpretation?.percentileApprox||50; const name = DISEASE_LABELS[d]||d; return `Genetic risk isn\'t destiny. Even at the ${pct}th percentile for ${name}, most people with elevated genetic scores never develop the condition — especially with informed lifestyle choices.\n\nKnowing your genetic risk in advance is genuinely useful: it means you can take preventive steps while the disease hasn\'t started, rather than reacting after the fact. That\'s the whole point of this kind of analysis.`; },
+    ]
+  },
+  { k:['family','parent','mother','father','sibling','inherit','hereditary','children','relative'],
+    t:[
+      d => `Genetic risk for ${DISEASE_LABELS[d]||d} is partly inherited, so family history is relevant. If a first-degree relative has this condition, your actual risk may be higher than the genetic score alone indicates.\n\nConversely, if your family history is clear but your genetic score is elevated, you may have inherited risk variants that didn\'t fully express in your relatives — or their environmental factors were protective. Mention both your genetic result and family history to your doctor.`,
+    ]
+  },
+];
 
 function updateChat(r) {
   const name = DISEASE_LABELS[r.disease] || r.diseaseName || '';
@@ -1474,7 +2133,7 @@ function updateChat(r) {
 
 function setQuickReplies(disease) {
   document.getElementById('quick-replies').innerHTML =
-    (QR[disease] || QR.type2_diabetes).map(q =>
+    (QR[disease] || QR.default).map(q =>
       `<button class="qr" onclick="sendQuickReply(this)">${q}</button>`
     ).join('');
   document.getElementById('quick-replies').style.display = '';
@@ -1549,7 +2208,7 @@ const META_RESPONSES = [
 
 function getResponse(text) {
   const disease = state.activeDisease || 'type2_diabetes';
-  const pool = RESPONSES[disease] || RESPONSES.type2_diabetes;
+  const diseasePool = RESPONSES[disease];
   const lower = text.toLowerCase();
   if (!chatUsed[disease]) chatUsed[disease] = new Set();
 
@@ -1561,30 +2220,37 @@ function getResponse(text) {
     }
   }
 
-  // Collect all matching entry indices
-  const matches = pool.reduce((acc, r, i) => {
-    if (r.k.some(k => lower.includes(k))) acc.push(i);
-    return acc;
-  }, []);
-
-  // Prefer unused matches; fall back to used ones if exhausted
-  const unused = matches.filter(i => !chatUsed[disease].has(i));
-  const idx = unused.length ? unused[0] : (matches.length ? matches[0] : -1);
-
-  if (idx >= 0) {
-    chatUsed[disease].add(idx);
-    const entry = pool[idx];
-    const variants = Array.isArray(entry.t) ? entry.t : [entry.t];
-    if (!chatVariants[disease]) chatVariants[disease] = {};
-    const lastV = chatVariants[disease][idx] ?? -1;
-    const nextV = (lastV + 1) % variants.length;
-    chatVariants[disease][idx] = nextV;
-    const picked = variants[nextV];
-    return typeof picked === 'function' ? picked(disease) : picked;
+  // Try disease-specific pool first (T2D, CAD, AMD have rich pools)
+  if (diseasePool) {
+    const matches = diseasePool.reduce((acc, r, i) => {
+      if (r.k.some(k => lower.includes(k))) acc.push(i);
+      return acc;
+    }, []);
+    const unused = matches.filter(i => !chatUsed[disease].has(i));
+    const idx = unused.length ? unused[0] : (matches.length ? matches[0] : -1);
+    if (idx >= 0) {
+      chatUsed[disease].add(idx);
+      const entry = diseasePool[idx];
+      const variants = Array.isArray(entry.t) ? entry.t : [entry.t];
+      if (!chatVariants[disease]) chatVariants[disease] = {};
+      const lastV = chatVariants[disease][idx] ?? -1;
+      const nextV = (lastV + 1) % variants.length;
+      chatVariants[disease][idx] = nextV;
+      const picked = variants[nextV];
+      return typeof picked === 'function' ? picked(disease) : picked;
+    }
   }
 
-  // No keyword match — unrecognised input
-  return `Sorry, I couldn't quite get your query — try again?`;
+  // Fall back to generic pool for all 34 diseases
+  for (const entry of GENERIC_RESPONSES) {
+    if (entry.k.some(k => lower.includes(k))) {
+      const variants = Array.isArray(entry.t) ? entry.t : [entry.t];
+      const picked = variants[0];
+      return typeof picked === 'function' ? picked(disease) : picked;
+    }
+  }
+
+  return `I don't have a specific answer for that. Try asking what your result means, what lifestyle changes help, or how the genes work.`;
 }
 </script>
 </body>
