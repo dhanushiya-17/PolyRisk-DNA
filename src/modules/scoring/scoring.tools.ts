@@ -11,26 +11,23 @@ import {
   FilterDecision,
 } from '../../types.js';
 
-
 const SUPPORTED_DISEASES = [
   'type2_diabetes',
   'coronary_artery_disease',
   'age_related_macular_degeneration',
 ] as const;
 
-
 export class ScoringTools {
+
+  /* ========================================================
+     CALCULATE PRS
+     ======================================================== */
 
   @Tool({
     name: 'calculate_prs',
 
     description:
-      'Calculates a weighted polygenic score using PRS = Σ(weight_i × genotype_i). ' +
-      'For binary disease associations reported as odds ratios, weight_i = ln(OR_i). ' +
-      'For beta associations, weight_i = beta_i. ' +
-      'Genotype_i is the number of effect alleles carried (0, 1, or 2). ' +
-      'If no genotype map is supplied, dosage=1 is assumed for every included variant and the result is explicitly flagged as genotypeAssumed=true. ' +
-      'This score is a relative weighted genetic score and is not an absolute probability of developing disease.',
+      'Calculates an explainable Polygenic Risk Score using PRS = Σ(weight_i × genotype_i). For odds ratios, weight = ln(OR). For beta effects, weight = beta. Genotype dosage is tracked independently for every SNP so missing genotypes are explicitly reported rather than silently treated as complete data.',
 
     inputSchema: z.object({
 
@@ -40,147 +37,76 @@ export class ScoringTools {
         ),
 
       includedDecisions:
-        z
-          .array(
-            z.any()
-          )
-          .describe(
-            'FilterDecision objects produced by filter_evidence. Only decision="included" records are scored.'
-          ),
+        z.array(
+          z.any()
+        )
+        .describe(
+          'FilterDecision objects returned by filter_evidence'
+        ),
 
       genotypes:
-        z
-          .record(
-            z.string(),
-            z
-              .number()
-              .int()
-              .min(0)
-              .max(2)
-          )
-          .optional()
-          .describe(
-            'Optional rsID → effect-allele dosage map. Each value must be 0, 1 or 2.'
-          ),
+        z.record(
+          z.string(),
+
+          /*
+           * FIX:
+           *
+           * Dosage must be exactly:
+           *
+           * 0, 1 or 2
+           *
+           * Fractional values such as 1.5 are rejected.
+           */
+          z.number()
+            .int()
+            .min(0)
+            .max(2)
+        )
+        .optional()
+        .describe(
+          'Map rsID -> effect allele dosage. Valid values are integers 0, 1 or 2. Missing SNP dosages are explicitly flagged and dosage=1 is used only as the current demo fallback.'
+        ),
     }),
-
-    examples: {
-
-      request: {
-
-        disease:
-          'type2_diabetes',
-
-        includedDecisions: [
-          {
-            rsid:
-              'rs7903146',
-
-            riskAllele:
-              'T',
-
-            effectSize:
-              1.37,
-
-            effectType:
-              'OR',
-
-            decision:
-              'included',
-
-            studyAccession:
-              'GCST000028',
-
-            pubmedId:
-              '17293876',
-          },
-        ],
-
-        genotypes: {
-          rs7903146: 1,
-        },
-      },
-
-      response: {
-
-        disease:
-          'type2_diabetes',
-
-        totalScore:
-          0.3147,
-
-        variantsIncluded:
-          1,
-
-        genotypeAssumed:
-          false,
-
-        contributions: [
-          {
-            rsid:
-              'rs7903146',
-
-            riskAllele:
-              'T',
-
-            genotypeAlleleCount:
-              1,
-
-            weight:
-              0.3147,
-
-            effectType:
-              'OR_log',
-
-            contribution:
-              0.3147,
-
-            studyAccession:
-              'GCST000028',
-
-            pubmedId:
-              '17293876',
-          },
-        ],
-      },
-    },
   })
-
 
   async calculatePrs(
     input: any,
     ctx: ExecutionContext
-  ) {
+  ): Promise<PRSResult> {
 
-    // ==========================================================
-    // ONLY INCLUDED EVIDENCE CAN ENTER THE SCORE
-    // ==========================================================
+    /* ======================================================
+       KEEP ONLY INCLUDED EVIDENCE
+       ====================================================== */
 
     const includedDecisions:
       FilterDecision[] =
       (
         input.includedDecisions ??
         []
-      ).filter(
-        (decision: any) =>
-          decision?.decision ===
-          'included'
-      );
+      )
+        .filter(
+          (decision: FilterDecision) =>
+            decision.decision ===
+            'included'
+        );
 
-
-    // ==========================================================
-    // NOTHING TO SCORE
-    // ==========================================================
+    /* ======================================================
+       EMPTY INPUT
+       ====================================================== */
 
     if (
-      includedDecisions.length ===
-      0
+      includedDecisions.length === 0
     ) {
 
+      /*
+       * No separate "warning" field.
+       *
+       * confidenceReason already provides the explanation,
+       * keeping PRSResult consistent across every return path.
+       */
       return {
-
         disease:
-          input.disease,
+          input.disease as Disease,
 
         totalScore:
           0,
@@ -194,260 +120,421 @@ export class ScoringTools {
         genotypeAssumed:
           false,
 
-        warning:
-          'No included variants were available for scoring. The PRS is therefore zero.',
+        assumedGenotypeRsids:
+          [],
+
+        confidenceLevel:
+          'low',
+
+        confidenceReason:
+          'No variants passed evidence filtering, so no PRS could be calculated.',
       };
     }
 
-
-    // ==========================================================
-    // GENOTYPE INPUT
-    // ==========================================================
+    /* ======================================================
+       GENOTYPE INPUT
+       ====================================================== */
 
     const genotypes:
       Record<string, number> =
       input.genotypes ?? {};
 
+    /*
+     * FIX:
+     *
+     * The old implementation did:
+     *
+     * Object.keys(genotypes).length === 0
+     *
+     * That only detects a completely empty genotype map.
+     *
+     * It fails when the user supplies some, but not all,
+     * required SNP dosages.
+     *
+     * We now track assumptions PER VARIANT.
+     */
+    let anyGenotypeAssumed =
+      false;
 
-    const genotypeAssumed =
-      Object.keys(
-        genotypes
-      ).length === 0;
-
+    const assumedRsids:
+      string[] = [];
 
     const contributions:
       PRSContribution[] = [];
 
-
     let totalScore =
       0;
 
-
-    // ==========================================================
-    // SCORE EACH SNP
-    // ==========================================================
+    /* ======================================================
+       SCORE EACH VARIANT
+       ====================================================== */
 
     for (
-      const decision of
-      includedDecisions
+      const decision
+      of includedDecisions
     ) {
 
-      // --------------------------------------------------------
-      // GENOTYPE DOSAGE
-      // --------------------------------------------------------
+      /* ----------------------------------------------------
+         GENOTYPE DOSAGE
+         ---------------------------------------------------- */
 
-      let genotypeAlleleCount:
-        number;
-
-
-      if (
-        Object.prototype.hasOwnProperty.call(
-          genotypes,
-          decision.rsid
-        )
-      ) {
-
-        genotypeAlleleCount =
-          genotypes[
+      /*
+       * hasOwnProperty is important here.
+       *
+       * A dosage of 0 is valid data and must NOT be mistaken
+       * for a missing value.
+       *
+       * Example:
+       *
+       * {
+       *   rs7903146: 0
+       * }
+       *
+       * means the genotype was supplied and contains zero
+       * copies of the effect allele.
+       */
+      const hasGenotype =
+        Object.prototype
+          .hasOwnProperty
+          .call(
+            genotypes,
             decision.rsid
-          ];
-
-
-        if (
-          !Number.isInteger(
-            genotypeAlleleCount
-          ) ||
-          genotypeAlleleCount <
-            0 ||
-          genotypeAlleleCount >
-            2
-        ) {
-
-          ctx.logger.warn(
-            'Skipping variant because genotype dosage is invalid',
-            {
-              rsid:
-                decision.rsid,
-
-              dosage:
-                genotypeAlleleCount,
-            }
           );
 
-          continue;
-        }
+      const genotypeAlleleCount =
+        hasGenotype
+          ? genotypes[
+              decision.rsid
+            ]
+          : 1;
 
-      } else {
+      /*
+       * Record the assumption for this exact SNP.
+       */
+      if (
+        !hasGenotype
+      ) {
 
-        /**
-         * If a genotype map exists but this particular SNP is
-         * missing, dosage=1 is still used as an MVP fallback.
-         *
-         * This behaviour should be shown clearly in reports.
-         */
-        genotypeAlleleCount =
-          1;
+        anyGenotypeAssumed =
+          true;
+
+        assumedRsids.push(
+          decision.rsid
+        );
       }
 
-
-      // --------------------------------------------------------
-      // CONVERT RAW EFFECT → PRS WEIGHT
-      // --------------------------------------------------------
+      /* ----------------------------------------------------
+         EFFECT -> PRS WEIGHT
+         ---------------------------------------------------- */
 
       let weight:
         number;
 
-
-      let contributionEffectType:
+      let effectType:
         'OR_log' |
         'beta';
 
-
+      /*
+       * For OR-based disease associations:
+       *
+       * weight = ln(OR)
+       */
       if (
         decision.effectType ===
-        'OR'
+          'OR' &&
+        decision.effectSize > 0
       ) {
 
-        if (
-          !Number.isFinite(
-            decision.effectSize
-          ) ||
-          decision.effectSize <=
-            0
-        ) {
-
-          ctx.logger.warn(
-            'Skipping variant because OR is invalid',
-            {
-              rsid:
-                decision.rsid,
-
-              effectSize:
-                decision.effectSize,
-            }
-          );
-
-          continue;
-        }
-
-
-        /**
-         * Logistic GWAS:
-         *
-         * OR -> log odds coefficient
-         *
-         * weight = ln(OR)
-         */
         weight =
           Math.log(
             decision.effectSize
           );
 
-
-        contributionEffectType =
+        effectType =
           'OR_log';
+      }
 
-      } else if (
+      /*
+       * For beta associations:
+       *
+       * weight = beta
+       */
+      else if (
         decision.effectType ===
         'beta'
       ) {
 
-        if (
-          !Number.isFinite(
-            decision.effectSize
-          )
-        ) {
-
-          ctx.logger.warn(
-            'Skipping variant because beta is invalid',
-            {
-              rsid:
-                decision.rsid,
-
-              effectSize:
-                decision.effectSize,
-            }
-          );
-
-          continue;
-        }
-
-
         weight =
           decision.effectSize;
 
-
-        contributionEffectType =
+        effectType =
           'beta';
+      }
 
-      } else {
+      /*
+       * Defensive fallback.
+       *
+       * Normally this should never occur because the evidence
+       * filter already rejects unusable effect estimates.
+       */
+      else {
 
         ctx.logger.warn(
-          'Skipping variant with unsupported effect type',
+          'Skipping variant with unusable effect estimate',
           {
             rsid:
               decision.rsid,
 
             effectType:
               decision.effectType,
+
+            effectSize:
+              decision.effectSize,
           }
         );
 
         continue;
       }
 
+      /* ----------------------------------------------------
+         CONTRIBUTION
+         ---------------------------------------------------- */
 
-      // --------------------------------------------------------
-      // PRS CONTRIBUTION
-      // --------------------------------------------------------
-
+      /*
+       * PRS_i = dosage_i × weight_i
+       */
       const contribution =
-        weight *
-        genotypeAlleleCount;
-
+        genotypeAlleleCount *
+        weight;
 
       totalScore +=
         contribution;
 
-
       contributions.push({
-
         rsid:
           decision.rsid,
 
         riskAllele:
-          decision.riskAllele ??
-          '',
+          decision.riskAllele,
 
         genotypeAlleleCount,
 
-        weight:
-          this.round(
-            weight
-          ),
+        /*
+         * Explicitly tell downstream UI/report code whether
+         * this particular dosage was supplied or assumed.
+         */
+        genotypeAssumed:
+          !hasGenotype,
 
-        effectType:
-          contributionEffectType,
+        weight,
 
-        contribution:
-          this.round(
-            contribution
-          ),
+        effectType,
+
+        contribution,
 
         studyAccession:
-          decision.studyAccession ??
-          null,
+          decision.studyAccession,
 
         pubmedId:
-          decision.pubmedId ??
-          null,
+          decision.pubmedId,
+
+        evidenceScore:
+          decision
+            .evidenceQuality
+            ?.score,
       });
     }
 
+    /* ======================================================
+       CONTRIBUTION PERCENTAGES
+       ====================================================== */
 
-    // ==========================================================
-    // FINAL RESULT
-    // ==========================================================
+    /*
+     * Use absolute values.
+     *
+     * Example:
+     *
+     * SNP A = +0.5
+     * SNP B = -0.4
+     *
+     * Raw total = 0.1
+     *
+     * Dividing by 0.1 would make contribution percentages
+     * misleading.
+     *
+     * Instead:
+     *
+     * denominator = |0.5| + |-0.4| = 0.9
+     */
+    const totalAbsoluteContribution =
+      contributions.reduce(
+        (sum, item) =>
+          sum +
+          Math.abs(
+            item.contribution
+          ),
+        0
+      );
+
+    for (
+      const item
+      of contributions
+    ) {
+
+      item.contributionPercent =
+        totalAbsoluteContribution > 0
+
+          ? Math.round(
+              (
+                Math.abs(
+                  item.contribution
+                ) /
+                totalAbsoluteContribution
+              ) *
+              10000
+            ) / 100
+
+          : 0;
+    }
+
+    /* ======================================================
+       EVIDENCE CONFIDENCE
+       ====================================================== */
+
+    const evidenceScores =
+      contributions
+        .map(
+          item =>
+            item.evidenceScore
+        )
+        .filter(
+          (
+            value
+          ): value is number =>
+            typeof value ===
+              'number' &&
+            Number.isFinite(
+              value
+            )
+        );
+
+    /*
+     * Average evidence quality of scored variants.
+     */
+    const averageEvidence =
+      evidenceScores.length > 0
+
+        ? evidenceScores.reduce(
+            (sum, score) =>
+              sum + score,
+            0
+          ) /
+          evidenceScores.length
+
+        : 0;
+
+    let confidenceLevel:
+      'low' |
+      'moderate' |
+      'high';
+
+    if (
+      averageEvidence >= 80
+    ) {
+
+      confidenceLevel =
+        'high';
+    }
+
+    else if (
+      averageEvidence >= 60
+    ) {
+
+      confidenceLevel =
+        'moderate';
+    }
+
+    else {
+
+      confidenceLevel =
+        'low';
+    }
+
+    /* ======================================================
+       DOWNGRADE IF GENOTYPES WERE ASSUMED
+       ====================================================== */
+
+    /*
+     * Evidence can be strong while the person's genotype data
+     * is incomplete.
+     *
+     * Therefore genotype assumptions reduce overall confidence.
+     */
+    if (
+      anyGenotypeAssumed
+    ) {
+
+      if (
+        confidenceLevel ===
+        'high'
+      ) {
+
+        confidenceLevel =
+          'moderate';
+      }
+
+      else {
+
+        confidenceLevel =
+          'low';
+      }
+    }
+
+    /* ======================================================
+       SORT CONTRIBUTIONS
+       ====================================================== */
+
+    /*
+     * Most influential SNPs first.
+     */
+    contributions.sort(
+      (a, b) =>
+        Math.abs(
+          b.contribution
+        ) -
+        Math.abs(
+          a.contribution
+        )
+    );
+
+    /* ======================================================
+       CONFIDENCE EXPLANATION
+       ====================================================== */
+
+    let confidenceReason:
+      string;
+
+    if (
+      anyGenotypeAssumed
+    ) {
+
+      confidenceReason =
+        `Average evidence quality=${averageEvidence.toFixed(1)}/100, ` +
+        `but genotype dosage was unavailable for ` +
+        `${assumedRsids.join(', ')} and dosage=1 was assumed for those variants.`;
+    }
+
+    else {
+
+      confidenceReason =
+        `Average evidence quality=${averageEvidence.toFixed(1)}/100 ` +
+        `across ${contributions.length} scored variants; ` +
+        `genotype dosage was supplied for every scored variant.`;
+    }
+
+    /* ======================================================
+       FINAL RESULT
+       ====================================================== */
 
     const result:
       PRSResult = {
@@ -456,23 +543,40 @@ export class ScoringTools {
           input.disease as Disease,
 
         totalScore:
-          this.round(
-            totalScore
-          ),
+          Math.round(
+            totalScore *
+            10000
+          ) / 10000,
 
         contributions,
 
         variantsIncluded:
           contributions.length,
 
-        genotypeAssumed,
-    };
+        /*
+         * True if even ONE SNP dosage was assumed.
+         */
+        genotypeAssumed:
+          anyGenotypeAssumed,
 
+        /*
+         * Exact SNPs where dosage was unavailable.
+         */
+        assumedGenotypeRsids:
+          assumedRsids,
+
+        confidenceLevel,
+
+        confidenceReason,
+      };
+
+    /* ======================================================
+       LOGGING
+       ====================================================== */
 
     ctx.logger.info(
       'PRS calculation complete',
       {
-
         disease:
           input.disease,
 
@@ -483,37 +587,19 @@ export class ScoringTools {
           result.variantsIncluded,
 
         genotypeAssumed:
-          result.genotypeAssumed,
+          anyGenotypeAssumed,
+
+        assumedVariants:
+          assumedRsids,
+
+        confidence:
+          confidenceLevel,
+
+        averageEvidence:
+          averageEvidence,
       }
     );
 
-
     return result;
-  }
-
-
-  // ============================================================
-  // ROUNDING
-  // ============================================================
-
-  private round(
-    value: number,
-    decimals = 6
-  ): number {
-
-    const factor =
-      Math.pow(
-        10,
-        decimals
-      );
-
-
-    return (
-      Math.round(
-        value *
-        factor
-      ) /
-      factor
-    );
   }
 }
