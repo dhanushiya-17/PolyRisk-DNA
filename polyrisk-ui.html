@@ -71,16 +71,6 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 .btn-back{background:var(--surface2);color:var(--ink2);padding:8px 14px;border-radius:100px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:6px;border:none;cursor:pointer;transition:background .15s;font-family:var(--font)}
 .btn-back:hover{background:var(--line)}
 
-/* rsID textarea */
-.rsid-textarea{width:100%;border:1.5px solid var(--line);border-radius:var(--r);padding:14px 16px;font-family:var(--mono);font-size:13px;color:var(--ink);background:var(--surface);resize:vertical;min-height:90px;outline:none;transition:border-color .2s;line-height:1.8}
-.rsid-textarea:focus{border-color:var(--teal)}
-.rsid-textarea::placeholder{color:var(--ink3);font-family:var(--mono)}
-
-/* OR divider */
-.or-divider{display:flex;align-items:center;gap:12px;margin:16px 0}
-.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--line)}
-.or-divider span{font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase}
-
 /* Upload */
 .upload-zone{border:2px dashed var(--line);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative;overflow:hidden}
 .upload-zone:hover,.upload-zone.drag-over{border-color:var(--teal);background:var(--teal-lt)}
@@ -183,6 +173,16 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 .chat-send{width:38px;height:38px;border-radius:50%;border:none;background:var(--teal);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s}
 .chat-send:hover{opacity:.85}
 
+/* Trait cards */
+.trait-section-header{margin-bottom:4px}
+.trait-card{background:var(--surface);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px;box-shadow:var(--sh-sm)}
+.trait-icon-wrap{width:44px;height:44px;border-radius:12px;background:var(--violet-lt);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.trait-meta{flex:1;min-width:0}
+.trait-category{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px}
+.trait-result{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.trait-desc{font-size:13px;color:var(--ink2);line-height:1.58}
+.trait-rsid{font-size:11px;font-family:var(--mono);color:var(--ink3);margin-top:6px}
+
 /* Disclaimer */
 .disclaimer{font-size:11px;color:var(--ink3);line-height:1.6;padding:14px;background:var(--surface2);border-radius:var(--r-sm);margin-top:20px}
 
@@ -230,17 +230,11 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 
   <div class="fu">
     <h1 class="t-hero">What diseases<br>are you at risk for?</h1>
-    <p class="t-body mt-16" style="max-width:420px">Enter your genetic variant IDs — our AI automatically scans all known disease associations, calculates your polygenic risk scores, and tells you which conditions your DNA is linked to. No disease selection needed.</p>
+    <p class="t-body mt-16" style="max-width:420px">Upload your 23andMe or AncestryDNA file — our AI scans all known disease associations, calculates your polygenic risk scores, and ranks which conditions your DNA is linked to.</p>
   </div>
 
   <div class="mt-36 fu2">
-    <p class="t-label mb-10">Paste your rsIDs</p>
-    <textarea class="rsid-textarea" id="rsid-input"
-      placeholder="rs7903146&#10;rs1333049&#10;rs1061170&#10;rs10490924&#10;…one per line"
-      oninput="handleRsidInput()"></textarea>
-    <p class="t-small mt-6">One rsID per line. Genotypes optional — the AI pulls associations from live research databases.</p>
-
-    <div class="or-divider mt-16"><span>or upload a DNA file</span></div>
+    <p class="t-label mb-10">Upload your DNA file</p>
 
     <div class="upload-zone" id="upload-zone"
       ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave()">
@@ -256,6 +250,7 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
       </div>
       <div class="upload-file-name" id="upload-filename"></div>
     </div>
+    <div id="file-error" style="display:none;margin-top:10px;padding:11px 14px;background:var(--high-lt);border-radius:var(--r-sm);border-left:3px solid var(--high);font-size:13px;color:var(--high);line-height:1.55"></div>
   </div>
 
   <div class="mt-20 fu3 gap-8">
@@ -321,6 +316,9 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
   <!-- Disease result cards injected here -->
   <div id="disease-results" class="fu2"></div>
 
+  <!-- Trait section injected here -->
+  <div id="trait-results"></div>
+
   <!-- Chat -->
   <div class="chat-section fu3" id="chat-section">
     <div class="chat-header">
@@ -356,7 +354,7 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-
 const NITROSTACK_URL = 'http://localhost:3000';
 
 // ─────────────────────────── STATE ───────────────────────────
-const state = { fileContent: null, rsidText: null, allResults: [], activeDisease: null };
+const state = { fileContent: null, allResults: [], activeDisease: null, genotypeMap: null };
 
 // ─────────────────────────── CONSTANTS ───────────────────────────
 const DISEASE_LABELS = {
@@ -440,6 +438,278 @@ const DEMO = {
   },
 };
 
+// ─────────────────────────── DEMO FILE CONTENT ───────────────────────────
+const DEMO_FILE_CONTENT = `# This data file generated by 23andMe\n# rsid\tchromosome\tposition\tgenotype\nrs7903146\t10\t114758349\tTC\nrs12255372\t10\t114773927\tTG\nrs4402960\t3\t185793899\tGT\nrs7756992\t6\t20787199\tAC\nrs1111875\t10\t94455539\tCT\nrs13266634\t8\t118184783\tCG\nrs1333049\t9\t22115026\tCC\nrs4977574\t9\t22098218\tGA\nrs1061170\t1\t196659237\tTC\nrs10490924\t10\t124214448\tGT\nrs762551\t15\t75041917\tCC\nrs9939609\t16\t53820527\tAT\nrs4680\t22\t19963748\tAA\nrs1801260\t4\t56295135\tCC\nrs1815739\t11\t66560624\tCT\nrs4988235\t2\t136608697\tGG\nrs713598\t7\t141972804\tCC`;
+
+// ─────────────────────────── CLIENT-SIDE PRS ENGINE ───────────────────────────
+// Betas = ln(OR) from published GWAS meta-analyses.
+// popMean/popSD derived from Hardy-Weinberg equilibrium using European MAFs.
+const PRS_DEFS = {
+  type2_diabetes: {
+    // Betas: DIAGRAM Consortium meta-analysis (Morris et al., Nat Genet 2012)
+    popMean: 0.649, popSD: 0.286,
+    variants: [
+      {rsid:'rs7903146',  riskAllele:'T', beta:0.336, alleles:['T','C'], gene:'TCF7L2',   desc:'Strongest known T2D gene — controls how much insulin the pancreas releases after a meal.'},
+      {rsid:'rs12255372', riskAllele:'T', beta:0.199, alleles:['T','G'], gene:'TCF7L2',   desc:'Second variant in the same TCF7L2 gene, independently affecting insulin secretion.'},
+      {rsid:'rs4402960',  riskAllele:'T', beta:0.131, alleles:['T','G'], gene:'IGF2BP2',  desc:'Affects insulin-like growth factor signalling and beta-cell function.'},
+      {rsid:'rs7756992',  riskAllele:'G', beta:0.113, alleles:['A','G'], gene:'CDKAL1',   desc:'Involved in tRNA modification; disrupts insulin production when the risk allele is present.'},
+      {rsid:'rs1111875',  riskAllele:'C', beta:0.095, alleles:['C','T'], gene:'HHEX',     desc:'Regulates pancreatic development and beta-cell mass.'},
+      {rsid:'rs13266634', riskAllele:'C', beta:0.068, alleles:['C','G'], gene:'SLC30A8',  desc:'A zinc transporter in pancreatic beta cells; risk allele slightly reduces insulin storage.'},
+    ],
+  },
+  coronary_artery_disease: {
+    // Betas: CARDIoGRAMplusC4D (Deloukas et al., Nat Genet 2013)
+    popMean: 0.556, popSD: 0.293,
+    variants: [
+      {rsid:'rs1333049', riskAllele:'C', beta:0.307, alleles:['C','G'], gene:'CDKN2B-AS1', desc:'The 9p21.3 locus — most replicated CAD risk region in the genome. Affects arterial wall biology and plaque formation.'},
+      {rsid:'rs4977574', riskAllele:'G', beta:0.278, alleles:['A','G'], gene:'CDKN2B-AS1', desc:'Second 9p21.3 variant, independently confirmed. Works through the same arterial inflammation pathway.'},
+    ],
+  },
+  age_related_macular_degeneration: {
+    // Betas: Fritsche et al., Nat Genet 2016; Klein et al., Science 2005
+    popMean: 0.889, popSD: 0.701,
+    variants: [
+      {rsid:'rs1061170',  riskAllele:'C', beta:0.854, alleles:['T','C'], gene:'CFH',        desc:'Complement Factor H — controls inflammation in the retina. Risk allele weakens the "off switch", allowing chronic low-grade inflammation to damage the macula.'},
+      {rsid:'rs10490924', riskAllele:'T', beta:0.693, alleles:['G','T'], gene:'ARMS2/HTRA1', desc:'Located near genes involved in mitochondrial function in the retinal pigment epithelium. One of the strongest AMD risk signals outside CFH.'},
+    ],
+  },
+};
+
+// Known valid alleles for every rsID in our system — used for genotype validation
+const KNOWN_ALLELES = {
+  rs7903146:'TC', rs12255372:'TG', rs4402960:'TG', rs7756992:'AG',
+  rs1111875:'CT', rs13266634:'CG', rs1333049:'CG', rs4977574:'AG',
+  rs1061170:'TC', rs10490924:'GT',
+  rs762551:'AC', rs9939609:'TA', rs4680:'AG', rs1801260:'TC',
+  rs1815739:'CT', rs4988235:'AG', rs713598:'CG',
+};
+
+// Abramowitz & Stegun normal CDF approximation (max error < 7.5e-8)
+function normalCDF(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z * z / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.7814779 + t * (-1.8212560 + t * 1.3302744))));
+  return z > 0 ? 1 - p : p;
+}
+
+// Returns { valid: true } or { valid: false, error: string }
+function validateGenotypeFile(fileContent) {
+  const lines = (fileContent || '').split('\n')
+    .map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+
+  if (!lines.length)
+    return { valid: false, error: 'File is empty or contains only comment lines.' };
+
+  let dataRows = 0;
+  const badFormat = [], impossible = [];
+
+  for (const line of lines) {
+    const parts = line.split('\t');
+    if (parts.length < 2) continue;
+
+    const rsid = parts[0].trim().toLowerCase();
+    if (!/^rs\d+$/.test(rsid)) continue; // skip non-rsID rows (header etc.)
+    dataRows++;
+
+    // Genotype is col 3 (23andMe) or col 1 (2-column)
+    const rawGt = (parts.length >= 4 ? parts[3] : parts[1] || '').trim().toUpperCase();
+    if (!rawGt || rawGt === 'NN' || rawGt === '--' || rawGt === '00') continue;
+
+    if (!/^[ATCG]{2}$/.test(rawGt)) {
+      badFormat.push(`${rsid}: "${rawGt}"`);
+      continue;
+    }
+
+    // Allele check for known rsIDs
+    const validStr = KNOWN_ALLELES[rsid];
+    if (validStr) {
+      for (const allele of rawGt) {
+        if (!validStr.includes(allele)) {
+          impossible.push(`${rsid}: "${rawGt}" (valid alleles: ${validStr[0]}/${validStr[1]})`);
+          break;
+        }
+      }
+    }
+  }
+
+  if (!dataRows)
+    return { valid: false, error: 'No rsID rows found. Ensure the file uses tab-separated columns with rsIDs in the format rs######.' };
+
+  if (impossible.length) {
+    const shown = impossible.slice(0, 3).join('; ');
+    const more = impossible.length > 3 ? ` and ${impossible.length - 3} more` : '';
+    return { valid: false, error: `Impossible genotype${impossible.length > 1 ? 's' : ''} — these allele combinations cannot exist at these positions: ${shown}${more}` };
+  }
+
+  if (badFormat.length) {
+    const shown = badFormat.slice(0, 3).join('; ');
+    return { valid: false, error: `Malformed genotype${badFormat.length > 1 ? 's' : ''} (expected exactly 2 nucleotides from A/T/C/G): ${shown}` };
+  }
+
+  return { valid: true };
+}
+
+function computeClientPRS(genotypeMap) {
+  const out = [];
+  for (const disease of Object.keys(PRS_DEFS)) {
+    const def = PRS_DEFS[disease];
+    let score = 0, foundAny = false;
+    const contributions = [];
+
+    for (const v of def.variants) {
+      const gt = (genotypeMap[v.rsid.toLowerCase()] || '').toUpperCase();
+      if (!gt || gt === 'NN' || gt === '--' || gt === '00') continue;
+      foundAny = true;
+      const count = gt.split('').filter(a => a === v.riskAllele).length;
+      const contrib = parseFloat((count * v.beta).toFixed(3));
+      score += contrib;
+      contributions.push({ rsid: v.rsid, riskAllele: v.riskAllele, contribution: contrib, alleleCount: count, gene: v.gene, desc: v.desc, beta: v.beta });
+    }
+
+    let pct;
+    if (foundAny) {
+      const z = (score - def.popMean) / def.popSD;
+      pct = Math.min(99, Math.max(1, Math.round(normalCDF(z) * 100)));
+    } else {
+      pct = DEMO[disease].riskInterpretation.percentileApprox;
+    }
+
+    const tier = pct < 40 ? 'low' : pct < 70 ? 'moderate' : 'high';
+    const totalVariants = def.variants.length;
+    const confidenceLevel = !foundAny ? 'low' : contributions.length >= Math.ceil(totalVariants * 0.7) ? 'high' : 'moderate';
+    const base = DEMO[disease];
+    out.push({
+      ...base,
+      riskInterpretation: { ...base.riskInterpretation, tier, percentileApprox: pct, prsScore: parseFloat(score.toFixed(3)), confidenceLevel },
+      prsResult: { contributions: contributions.length ? contributions : base.prsResult.contributions },
+    });
+  }
+  return out;
+}
+
+// ─────────────────────────── TRAIT DEFINITIONS ───────────────────────────
+const TRAIT_DEFS = {
+  rs762551: {
+    name: 'Caffeine Sensitivity', emoji: '☕',
+    interp: {
+      AA: { result: 'Fast Metabolizer', desc: 'Your body clears caffeine quickly — you can handle a late coffee without it wrecking your sleep, and you likely need more of it to feel the same effect others do.' },
+      AC: { result: 'Intermediate', desc: 'You process caffeine at an average pace. A mid-afternoon coffee will probably nudge your sleep quality, but isn\'t catastrophic.' },
+      CA: { result: 'Intermediate', desc: 'You process caffeine at an average pace. A mid-afternoon coffee will probably nudge your sleep quality, but isn\'t catastrophic.' },
+      CC: { result: 'Slow Metabolizer', desc: 'Caffeine lingers in your system far longer than average. One coffee in the afternoon can still be active at midnight. This is genetics — not sensitivity, not weakness.' },
+    }
+  },
+  rs9939609: {
+    name: 'Weight Set Point', emoji: '⚖️',
+    interp: {
+      TT: { result: 'Lower Genetic Tendency', desc: 'Your FTO variant is protective. You don\'t have the genetic headwind that makes weight management harder for some people.' },
+      AT: { result: 'Moderate Genetic Tendency', desc: 'You carry one FTO risk allele. Your body has a moderate pull toward a higher weight set point — real, but not extreme. Diet and activity patterns matter a lot for you.' },
+      TA: { result: 'Moderate Genetic Tendency', desc: 'You carry one FTO risk allele. Your body has a moderate pull toward a higher weight set point — real, but not extreme. Diet and activity patterns matter a lot for you.' },
+      AA: { result: 'Strong Genetic Tendency', desc: 'You carry two FTO risk alleles. Your body fights harder to hold onto weight — this is biology, not willpower. You\'re not imagining it.' },
+    }
+  },
+  rs4680: {
+    name: 'Stress Response', emoji: '🧠',
+    interp: {
+      GG: { result: 'Warrior Type', desc: 'Your COMT enzyme clears dopamine quickly under pressure. You tend to stay clear-headed in high-stakes moments — but may underperform when there\'s nothing on the line.' },
+      AG: { result: 'Mixed Type', desc: 'You fall between warrior and worrier. Adaptable — capable of performing under pressure, but sensitive enough to notice what others miss.' },
+      GA: { result: 'Mixed Type', desc: 'You fall between warrior and worrier. Adaptable — capable of performing under pressure, but sensitive enough to notice what others miss.' },
+      AA: { result: 'Worrier Type', desc: 'Dopamine lingers longer in your prefrontal cortex. In calm conditions this sharpens your focus and attention to detail. Under acute stress, that same depth can become overwhelming.' },
+    }
+  },
+  rs1801260: {
+    name: 'Sleep Chronotype', emoji: '🌙',
+    interp: {
+      TT: { result: 'Morning Person', desc: 'Your CLOCK variant is associated with earlier sleep timing. Early meetings probably don\'t destroy you the way they do for some people.' },
+      TC: { result: 'Neutral', desc: 'Your sleep timing preference sits close to average — sleeping around 11pm and waking around 7am probably feels natural.' },
+      CT: { result: 'Neutral', desc: 'Your sleep timing preference sits close to average — sleeping around 11pm and waking around 7am probably feels natural.' },
+      CC: { result: 'Night Owl', desc: 'Your CLOCK variant pushes your natural sleep timing later. Your body genuinely wants to sleep and wake later than most. Fighting it with early alarms isn\'t a discipline problem — it\'s working against your biology.' },
+    }
+  },
+  rs1815739: {
+    name: 'Exercise Type', emoji: '💪',
+    interp: {
+      CC: { result: 'Power Type', desc: 'Two functional copies of ACTN3 — a fast-twitch muscle protein found in virtually all elite sprinters and power athletes. You\'re genetically built for explosive effort.' },
+      CT: { result: 'Mixed Type', desc: 'One functional ACTN3 copy. You\'re naturally balanced — neither a pure power nor pure endurance type, and you adapt well to different training styles.' },
+      TC: { result: 'Mixed Type', desc: 'One functional ACTN3 copy. You\'re naturally balanced — neither a pure power nor pure endurance type, and you adapt well to different training styles.' },
+      TT: { result: 'Endurance Type', desc: 'The "XX" ACTN3 genotype — no alpha-actinin-3 expression. About 18% of people share this. Your muscles are optimised for efficiency over raw power. Long-distance training may come more naturally to you.' },
+    }
+  },
+  rs4988235: {
+    name: 'Lactose Tolerance', emoji: '🥛',
+    interp: {
+      GG: { result: 'Lactase Persistent', desc: 'Your body continues producing lactase into adulthood. Dairy digestion is normal for you — no genetic reason to avoid it.' },
+      AG: { result: 'Likely Tolerant', desc: 'One persistence allele is enough for most people. You\'re likely able to handle dairy without discomfort.' },
+      GA: { result: 'Likely Tolerant', desc: 'One persistence allele is enough for most people. You\'re likely able to handle dairy without discomfort.' },
+      AA: { result: 'Lactase Non-Persistent', desc: 'Neither allele carries the lactase persistence variant. Your body likely reduces lactase production after childhood — dairy may cause bloating or discomfort.' },
+    }
+  },
+  rs713598: {
+    name: 'Bitter Taste', emoji: '🥦',
+    interp: {
+      GG: { result: 'Non-Taster', desc: 'You can\'t detect the bitter compounds in Brussels sprouts, broccoli, and kale. What some people find unbearably bitter barely registers for you.' },
+      CG: { result: 'Medium Taster', desc: 'You have moderate bitter sensitivity — you notice it, but it probably doesn\'t dominate your experience of these foods.' },
+      GC: { result: 'Medium Taster', desc: 'You have moderate bitter sensitivity — you notice it, but it probably doesn\'t dominate your experience of these foods.' },
+      CC: { result: 'Super-Taster', desc: 'You carry two bitter-sensitive TAS2R38 variants. Broccoli, Brussels sprouts, tonic water — intensely bitter to you in a way others genuinely can\'t perceive. If you\'ve avoided these your whole life, now you know why.' },
+    }
+  },
+};
+
+// ─────────────────────────── TRAIT PARSING & RENDER ───────────────────────────
+function parseGenotypeMap(fileContent) {
+  const map = {};
+  for (const line of (fileContent || '').split('\n')) {
+    if (line.startsWith('#') || !line.trim()) continue;
+    const parts = line.trim().split('\t');
+    if (parts.length >= 4) {
+      const gt = parts[3].toUpperCase();
+      if (gt && gt !== 'NN' && gt !== '--') map[parts[0].toLowerCase()] = gt;
+    }
+  }
+  return map;
+}
+
+function buildTraitSection(fileContent) {
+  const gMap = state.genotypeMap || parseGenotypeMap(fileContent);
+  const cards = [];
+  for (const [rsid, def] of Object.entries(TRAIT_DEFS)) {
+    const gt = (gMap[rsid.toLowerCase()] || '').toUpperCase();
+    const interp = gt ? def.interp[gt] : null;
+    if (gt && interp) {
+      cards.push(`
+        <div class="trait-card">
+          <div class="trait-icon-wrap">${def.emoji}</div>
+          <div class="trait-meta">
+            <div class="trait-category">${def.name}</div>
+            <div class="trait-result">${interp.result}</div>
+            <div class="trait-desc">${interp.desc}</div>
+            <div class="trait-rsid">${rsid} · ${gt}</div>
+          </div>
+        </div>`);
+    } else {
+      cards.push(`
+        <div class="trait-card" style="opacity:0.45">
+          <div class="trait-icon-wrap" style="background:var(--surface2)">${def.emoji}</div>
+          <div class="trait-meta">
+            <div class="trait-category">${def.name}</div>
+            <div class="trait-result" style="color:var(--ink3)">Not in your file</div>
+            <div class="trait-desc">This variant (${rsid}) wasn't present in the uploaded data.</div>
+            <div class="trait-rsid">${rsid} · —</div>
+          </div>
+        </div>`);
+    }
+  }
+  return `
+    <div>
+      <div class="divider mt-8"></div>
+      <div class="mt-24 mb-16 trait-section-header">
+        <p class="t-label mb-6">PERSONAL GENETICS</p>
+        <h3 class="t-heading">Why am I like this?</h3>
+        <p class="t-body mt-8" style="font-size:14px">Everyday quirks and traits — explained by your DNA.</p>
+      </div>
+      ${cards.join('')}
+    </div>`;
+}
+
 // ─────────────────────────── SCREENS ───────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -448,14 +718,8 @@ function showScreen(id) {
 }
 
 // ─────────────────────────── INPUT HANDLING ───────────────────────────
-function handleRsidInput() {
-  state.rsidText = document.getElementById('rsid-input').value;
-  checkAnalyzeButton();
-}
-
 function checkAnalyzeButton() {
-  const hasInput = !!(state.fileContent || (state.rsidText && state.rsidText.trim().length > 0));
-  document.getElementById('btn-analyze').disabled = !hasInput;
+  document.getElementById('btn-analyze').disabled = !state.fileContent;
 }
 
 function handleDrop(e) {
@@ -466,19 +730,39 @@ function handleDrop(e) {
 function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
 function handleDragLeave() { document.getElementById('upload-zone').classList.remove('drag-over'); }
 function handleFileSelect(e) { const f = e.target.files[0]; if (f) processFile(f); }
+function showFileError(msg) {
+  const el = document.getElementById('file-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function clearFileError() {
+  const el = document.getElementById('file-error');
+  el.style.display = 'none';
+  el.textContent = '';
+}
+
 function processFile(f) {
   document.getElementById('upload-zone').classList.add('has-file');
   document.getElementById('upload-filename').textContent = '✓ ' + f.name;
   const r = new FileReader();
-  r.onload = e => { state.fileContent = e.target.result; checkAnalyzeButton(); };
+  r.onload = e => {
+    const content = e.target.result;
+    const v = validateGenotypeFile(content);
+    if (!v.valid) {
+      showFileError(v.error);
+      state.fileContent = null;
+      state.genotypeMap = null;
+      document.getElementById('upload-zone').classList.remove('has-file');
+      document.getElementById('upload-filename').textContent = '';
+      checkAnalyzeButton();
+      return;
+    }
+    clearFileError();
+    state.fileContent = content;
+    state.genotypeMap = parseGenotypeMap(content);
+    checkAnalyzeButton();
+  };
   r.readAsText(f);
-}
-
-function rsidsToFileContent(text) {
-  const lines = text.trim().split('\n').map(l => l.trim()).filter(l => /^rs\d+/i.test(l));
-  const header = '# rsid\tchromosome\tposition\tgenotype\n';
-  const rows = lines.map(rsid => `${rsid.toLowerCase()}\t0\t0\tNN`).join('\n');
-  return header + rows;
 }
 
 // ─────────────────────────── LOADING STEPS ───────────────────────────
@@ -522,15 +806,15 @@ function animateSteps(total, onDone) {
 
 // ─────────────────────────── ANALYSIS FLOW ───────────────────────────
 async function startAnalysis() {
-  if (!state.fileContent && !(state.rsidText && state.rsidText.trim())) return;
+  if (!state.fileContent) return;
   showScreen('s-analyze');
   let results;
   try {
     results = await callAllDiseases();
     if (!results || results.length === 0) throw new Error('No results');
   } catch(e) {
-    console.warn('Server unavailable, using demo data');
-    results = Object.values(DEMO);
+    console.warn('Server unavailable, computing client-side PRS');
+    results = computeClientPRS(state.genotypeMap || {});
   }
   state.allResults = rankResults(results);
   const total = buildAllSteps();
@@ -538,6 +822,11 @@ async function startAnalysis() {
 }
 
 function runDemo() {
+  state.fileContent = DEMO_FILE_CONTENT;
+  state.genotypeMap = {
+    rs762551: 'CC', rs9939609: 'AT', rs4680: 'AA',
+    rs1801260: 'CC', rs1815739: 'CT', rs4988235: 'GG', rs713598: 'CC'
+  };
   state.allResults = rankResults(Object.values(DEMO));
   showScreen('s-analyze');
   const total = buildAllSteps();
@@ -555,7 +844,7 @@ function rankResults(results) {
 
 // ─────────────────────────── SERVER CALLS ───────────────────────────
 async function callAllDiseases() {
-  const fileContent = state.fileContent || rsidsToFileContent(state.rsidText);
+  const fileContent = state.fileContent;
   const diseases = ['type2_diabetes', 'coronary_artery_disease', 'age_related_macular_degeneration'];
 
   const initRes = await fetch(`${NITROSTACK_URL}/mcp`, {
@@ -624,6 +913,11 @@ function renderAllResults(results) {
   updateChat(results[0]);
 
   showScreen('s-results');
+
+  // Build trait section after screen is visible
+  setTimeout(() => {
+    document.getElementById('trait-results').innerHTML = buildTraitSection(state.fileContent || '');
+  }, 50);
 }
 
 function buildDiseaseCard(r, expanded) {
@@ -641,13 +935,40 @@ function buildDiseaseCard(r, expanded) {
     </div>`
   ).join('') || '<p class="t-small" style="padding:8px 0">No lifestyle data available.</p>';
 
-  const evidenceHTML = (r.prsResult?.contributions || []).map(c =>
-    `<div class="evidence-card">
-      <div class="ev-rsid">${c.rsid}</div>
-      <div class="ev-detail">Risk allele: <strong>${c.riskAllele}</strong> · Score contribution: <span style="font-family:var(--mono)">${(c.contribution >= 0 ? '+' : '') + c.contribution.toFixed(3)}</span></div>
-      <span class="ev-badge">GWAS-confirmed</span>
-    </div>`
-  ).join('') || '<p class="t-small" style="padding:8px 0">No variant data available.</p>';
+  const contribs = r.prsResult?.contributions || [];
+  const totalAbsContrib = contribs.reduce((s, c) => s + Math.abs(c.contribution), 0);
+  const totalExpected = PRS_DEFS[r.disease]?.variants?.length || contribs.length;
+  const covText = contribs.length === totalExpected
+    ? `All ${totalExpected} variants matched in your file.`
+    : contribs.length === 0
+      ? 'No variants matched — showing demo data.'
+      : `${contribs.length} of ${totalExpected} variants matched in your file.`;
+  const ALLELE_LABELS = ['No copies — no added risk from this variant', 'One copy (heterozygous)', 'Two copies (homozygous — strongest effect)'];
+  const evidenceHTML = contribs.map(c => {
+    const isRisk = c.contribution >= 0;
+    const pct = totalAbsContrib > 0 ? Math.round(Math.abs(c.contribution) / totalAbsContrib * 100) : 0;
+    const dirBg    = isRisk ? 'var(--high-lt)'  : 'var(--teal-lt)';
+    const dirColor = isRisk ? 'var(--high)'     : 'var(--teal)';
+    const dirLabel = isRisk ? 'Risk-increasing' : 'Protective';
+    const orVal    = c.beta ? Math.exp(c.beta).toFixed(2) : null;
+    const alleleText = c.alleleCount !== undefined ? ALLELE_LABELS[c.alleleCount] : null;
+    return `<div class="evidence-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px">
+        <div>
+          <span style="font-size:13px;font-weight:650;color:var(--ink)">${c.gene || c.rsid}</span>
+          ${c.gene ? `<span style="font-size:11px;color:var(--ink3);font-family:var(--mono);margin-left:6px">${c.rsid}</span>` : ''}
+        </div>
+        <span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;background:${dirBg};color:${dirColor};white-space:nowrap;flex-shrink:0">${dirLabel}</span>
+      </div>
+      ${c.desc ? `<p style="font-size:12px;color:var(--ink2);line-height:1.5;margin-bottom:8px">${c.desc}</p>` : ''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px">
+        ${alleleText ? `<span style="background:var(--surface2);color:var(--ink2);padding:3px 9px;border-radius:100px">${alleleText}</span>` : ''}
+        ${orVal ? `<span style="background:var(--surface2);color:var(--ink2);padding:3px 9px;border-radius:100px">OR ${orVal} per copy</span>` : ''}
+        <span style="background:var(--surface2);color:var(--ink2);padding:3px 9px;border-radius:100px">${pct}% of your score</span>
+        <span class="ev-badge">GWAS-confirmed</span>
+      </div>
+    </div>`;
+  }).join('') || '<p class="t-small" style="padding:8px 0">No variant data available.</p>';
 
   return `
   <div class="drc ${expanded ? 'open' : ''}" id="drc-${d}" data-disease="${r.disease}">
@@ -679,7 +1000,7 @@ function buildDiseaseCard(r, expanded) {
         <div class="lifestyle-list mt-4">${lifestyleHTML}</div>
       </div>
       <div id="tab-${d}-evidence" class="tab-content">
-        <p class="t-small mb-12 mt-4">Variants matched against the NHGRI-EBI GWAS Catalog. Each contribution = log(OR) × your allele count.</p>
+        <p class="t-small mb-12 mt-4">${covText} Each card shows what the gene does and how your specific genotype contributes to the score.</p>
         <div class="evidence-list">${evidenceHTML}</div>
       </div>
     </div>
@@ -726,55 +1047,421 @@ function switchTab(name, btn) {
 }
 
 // ─────────────────────────── CHAT ───────────────────────────
+// Tracks which response indices have been shown per disease conversation
+const chatUsed = {};
+// Tracks which variant index was last shown per (disease, entry) pair
+const chatVariants = {};
+
+// Helper to get live result data for the active disease
+function liveResult(disease) {
+  return state.allResults.find(r => r.disease === disease) || {};
+}
+function livePct(disease) { return liveResult(disease)?.riskInterpretation?.percentileApprox ?? 50; }
+function liveTier(disease) { return liveResult(disease)?.riskInterpretation?.tier ?? 'moderate'; }
+
+// Each entry: k = keyword triggers, t = string or array of strings (rotated to avoid repeats)
 const RESPONSES = {
   type2_diabetes:[
-    {k:['mean','explain','what does','understand','percentile','score','result','tell me'],
-     t:`Your score puts you at the 65th percentile for Type 2 Diabetes genetic risk — roughly 65% of people carry lower predisposition than you. That sounds significant, but genetics explains only 30–40% of T2D risk. The remaining 60–70% is your lifestyle, diet, sleep, and environment — all things you can actively influence.\n\nThink of this as an early-warning signal, not a verdict.`},
-    {k:['do','reduce','prevent','lifestyle','exercise','diet','should i','action','help'],
-     t:`T2D is one of the most preventable diseases we know of. The Diabetes Prevention Program found modest lifestyle changes reduce incidence by 58% — more than metformin.\n\n(1) 150 min/week of moderate walking; (2) Reduce refined carbohydrates and sugary drinks; (3) 5–7% weight reduction if applicable.\n\nThese aren't minor tweaks. They're the difference between a genetic predisposition staying a predisposition, or becoming actual diabetes.`},
-    {k:['accurate','reliable','certain','trust','limitation'],
-     t:`Polygenic risk scores are real science. They sum the effect sizes of many variants linked to T2D in large genome-wide studies. Real limits: they capture 30–40% of T2D genetic heritability and perform better in European-ancestry populations due to study representation bias.\n\nTreat this as a well-informed starting point — one piece of evidence in a larger conversation with your doctor.`},
-    {k:['doctor','medical','physician','see a','tell my'],
-     t:`Worth raising with your doctor at your next visit. A fasting glucose or HbA1c test every few years is standard for anyone with above-average genetic risk.\n\nYour doctor can combine this with family history, BMI, blood pressure, and activity levels for a much more complete picture.`},
-    {k:['tcf7l2','gene','rs7903146','variant','snp'],
-     t:`TCF7L2 is the strongest known genetic risk factor for Type 2 Diabetes. It's a transcription factor regulating the Wnt signaling pathway in pancreatic beta cells — the cells that produce insulin.\n\nVariants at rs7903146 alter gene expression, slightly impairing how beta cells respond to glucose signals. This has been replicated in over 100 independent studies across hundreds of thousands of participants.`},
-    {k:['worry','scared','worried','concerned','bad','serious'],
-     t:`A moderate result is useful information — not a reason to panic.\n\nMost people with moderate T2D genetic risk who maintain reasonably healthy habits never develop diabetes. The 65th percentile is above average — not in the high-risk tail where genetic effects accelerate.\n\nYou're learning this while you still have decades to act on it.`},
+    { k:['mean','explain','what does','understand','result','tell me','what is','t2d','type 2','diabetes','disease','condition','overview','summary'],
+      t:[
+        d => `Type 2 Diabetes is a metabolic disease where the body either doesn't produce enough insulin or can't use it effectively, causing chronically elevated blood sugar. Over time, high glucose damages blood vessels, nerves, kidneys, and eyes.\n\nYour genetic score places you at the ${livePct(d)}th percentile — ${livePct(d)}% of people carry lower T2D genetic predisposition than you. Genetics explains 30–40% of risk; the rest is lifestyle and environment, both of which you can actively influence.`,
+        d => `T2D develops when pancreatic beta cells can't keep up with the body's insulin demand — often a combination of insulin resistance and impaired secretion. It's usually silent for years before diagnosis.\n\nYour ${livePct(d)}th-percentile genetic score reflects six well-validated GWAS variants across genes like TCF7L2, CDKAL1, and HHEX. ${livePct(d) > 70 ? 'Above-average genetic burden means proactive monitoring is genuinely worthwhile.' : livePct(d) < 40 ? 'Below-average genetic burden is a reassuring starting point.' : 'Near-average genetic burden — standard prevention measures apply.'}`,
+      ]
+    },
+    { k:['percentile','rank','compared','population','average','what does the number','score mean','65','70','80','85','90','50'],
+      t:[
+        d => `The ${livePct(d)}th percentile means: in a room of 100 random people, about ${livePct(d)} of them carry less T2D genetic risk than you. It's a relative ranking, not an absolute probability.\n\nA high percentile in someone with healthy habits often translates to lower actual diabetes risk than a low percentile in someone sedentary with a poor diet. Genetics sets a baseline — lifestyle shifts it substantially.`,
+      ]
+    },
+    { k:['do','reduce','prevent','lifestyle','exercise','diet','should i','action','help','change','lower','improve'],
+      t:[
+        `T2D is one of the most preventable chronic diseases. The Diabetes Prevention Program found 150 min/week of moderate walking plus 5–7% weight reduction cut T2D incidence by 58% — more than metformin.\n\nTop evidence-based interventions:\n— Reduce refined carbohydrates and added sugars\n— Increase dietary fibre (legumes, vegetables, whole grains)\n— 150 min/week aerobic exercise minimum\n— Prioritise 7–9 hours of consistent sleep\n— 5–7% body weight reduction if overweight\n\nEach works through a different mechanism and compounds the others.`,
+        `Three interventions with the strongest evidence:\n\n1. Aerobic exercise — improves insulin sensitivity independently of weight loss; 150 min/week is the threshold with the clearest evidence\n2. Dietary carbohydrate quality — replacing refined carbs with fibre-rich alternatives reduces post-meal glucose spikes and beta cell strain\n3. Weight reduction — the DPP showed 5–7% loss cut T2D incidence more than any drug tested\n\nSleep and stress management are underrated but robustly supported: poor sleep acutely impairs glucose metabolism within 24 hours.`,
+      ]
+    },
+    { k:['accurate','reliable','certain','trust','limitation','how good','how accurate','valid','science','proof'],
+      t:[
+        `Polygenic risk scores are grounded in GWAS science — but they have known limits. They capture 30–40% of T2D genetic heritability. The missing heritability includes rare variants not on standard genotyping arrays, gene-environment interactions, and variants below genome-wide significance thresholds.\n\nThey also perform better in European-ancestry populations due to historical study composition bias — if you have non-European ancestry, your score may be less calibrated.\n\nTreat this as a well-informed signal, not a diagnostic.`,
+      ]
+    },
+    { k:['doctor','medical','physician','see a','tell my','gp','visit','test','screen','check','healthcare'],
+      t:[
+        `At your next check-up, ask for a fasting glucose and HbA1c test. HbA1c measures your average blood sugar over the past 3 months — it's the standard screening tool and costs almost nothing.\n\nNormal HbA1c: below 5.7%. Prediabetes: 5.7–6.4%. Diabetes: 6.5%+.\n\nYour doctor can combine the genetic score with BMI, family history, blood pressure, and activity levels for a much more complete picture. Mention this score explicitly — it's an evidence-based input they can factor in.`,
+        `Ask specifically for: HbA1c, fasting plasma glucose, and fasting insulin (useful for calculating insulin resistance). These together tell you whether the genetic predisposition has translated into any biochemical change yet.\n\nFor people with elevated genetic T2D risk, guidelines support earlier and more frequent screening — every 1–3 years rather than every 5.`,
+      ]
+    },
+    { k:['tcf7l2','gene','rs7903146','variant','snp','what gene','which gene','biology','mechanism','genetic','pathway'],
+      t:[
+        `TCF7L2 at rs7903146 is the strongest known T2D genetic signal. It's a transcription factor in the Wnt signalling pathway that regulates GLP-1-stimulated insulin release from pancreatic beta cells. The T risk allele reduces incretin response — the same pathway that GLP-1 agonists like semaglutide (Ozempic) target.\n\nOther variants: rs4402960 (IGF2BP2 — insulin mRNA stability), rs7756992 (CDKAL1 — tRNA modification for insulin translation), rs1111875 (HHEX — pancreatic development), rs13266634 (SLC30A8 — zinc in beta cell granules).`,
+        `The six T2D variants span distinct biological pathways — they're not redundant:\n\n— TCF7L2: GLP-1/incretin signalling in beta cells\n— IGF2BP2: insulin mRNA post-transcriptional regulation\n— CDKAL1: wobble uridine tRNA modification affecting proinsulin translation fidelity\n— HHEX/IDE: beta cell development and insulin degradation\n— SLC30A8: zinc transport into secretory granules (crystalline insulin storage)\n\nEach is a small effect; their combined score reflects cumulative biological burden on beta cell function.`,
+      ]
+    },
+    { k:['worry','scared','worried','concerned','bad','serious','anxious','nervous','afraid','fear','upset'],
+      t:[
+        `Above-average genetic T2D risk is useful information — not a reason to panic.\n\nT2D has one of the longest lead times of any common disease — often 10–20 years of slowly rising glucose before clinical diagnosis. That means you're learning this at the stage where prevention is most powerful.\n\nThe DPP enrolled high-risk people and showed dramatic prevention from modest lifestyle changes. This isn't theoretical — it's one of the best-demonstrated preventive interventions in all of medicine.`,
+        `Genetic risk is a predisposition, not a predetermined outcome. Many people with elevated genetic scores never develop T2D — especially those who stay active and maintain healthy weight.\n\nThe fact that you're looking at this information now is itself a protective factor. Awareness enables the behaviour change that prevents the disease.`,
+      ]
+    },
+    { k:['difficult','hard','can\'t','cannot','struggle','limited','control','afford','access','busy','no time','not easy','realistic','practical','low income','food','environment','impossible'],
+      t:[
+        `That's a real constraint. Exercise has a large independent effect even without dietary change — it improves insulin sensitivity through a different mechanism. Walking is free and fits almost any schedule.\n\nIf diet is hard to change: prioritise sleep (free, affects blood sugar within one night of poor sleep), stress management (chronic stress raises cortisol which impairs insulin signalling), and reducing liquid sugar — just swapping one sweetened drink per day for water is a single actionable change.\n\nYou don't need to change everything. Each independent step reduces risk on its own.`,
+        `Food environments are genuinely hard to change — limited choices, shared households, cost constraints, time pressure. Here's what's still accessible:\n\n— Sleep: poor sleep raises blood sugar directly; improving it costs nothing\n— Walking: free, no equipment, can be broken into 10-minute chunks throughout the day\n— Stress reduction: breathing exercises, reducing caffeine after noon\n— One dietary swap: removing the highest-sugar item in your current diet\n\nPerfect is the enemy of good. Any reduction in risk from interventions you can actually do is real.`,
+      ]
+    },
+    { k:['metabolic','metabolism','metabolic syndrome','metabolize','metabolise'],
+      t:[
+        `"Metabolic" refers to the chemical processes your body uses to convert food into energy. T2D is called a metabolic disease because it disrupts glucose metabolism — the process of breaking down sugar for fuel.\n\nMetabolic syndrome is a related cluster of conditions that often appear together: high blood sugar, high blood pressure, high triglycerides, low HDL cholesterol, and excess abdominal fat. Having three or more of these doubles your risk of T2D and cardiovascular disease.\n\nYour genetics predispose you to the blood sugar component — but the full metabolic syndrome picture is shaped heavily by diet, exercise, and weight.`,
+        `Metabolism is the sum of all chemical reactions that keep your body running. Glucose metabolism specifically is regulated by insulin — insulin signals cells to absorb glucose from the blood for energy or storage.\n\nWhen this breaks down (insulin resistance or insufficient insulin production), glucose builds up in the blood — that's T2D. "Metabolic disease" just means a disease caused by disruption of these fundamental energy-regulation processes.\n\nThe six genetic variants in your T2D analysis all affect different steps in the insulin production and signalling chain.`,
+      ]
+    },
+    { k:['insulin','blood sugar','glucose','pancreas','beta cell','mechanism','how does it work','sugar','spike'],
+      t:[
+        `T2D involves two overlapping problems: insulin resistance (cells not responding to insulin signals) and impaired secretion (beta cells not releasing enough insulin).\n\nThe variants in this analysis primarily affect beta cell function rather than insulin resistance. This matters because: aerobic exercise primarily targets insulin resistance; dietary carbohydrate control reduces demand on beta cells. Both are relevant but work through different pathways.`,
+      ]
+    },
+    { k:['prediabetes','pre-diabetes','borderline','hba1c','a1c','fasting glucose','blood test','haemoglobin','hemoglobin'],
+      t:[
+        `Prediabetes (HbA1c 5.7–6.4%, fasting glucose 100–125 mg/dL) is where lifestyle intervention is most powerful — and fully reversible. The DPP showed 58% risk reduction at this stage.\n\nIf you haven't had an HbA1c recently, it's the most useful next step. It gives you the biochemical picture genetics alone can't provide. Prediabetes is asymptomatic — you won't know without testing.`,
+      ]
+    },
+    { k:['family','parent','mother','father','sibling','brother','sister','inherit','hereditary','children','kids','relative','grandparent'],
+      t:[
+        `First-degree relatives of someone with T2D have roughly 2–3× higher lifetime risk — combining genetic and shared lifestyle/environment factors.\n\nThis analysis captures the genetic side. If close family members have T2D, that's corroborating signal worth flagging for your doctor. It can inform whether screening should start earlier and how aggressively to pursue prevention.`,
+      ]
+    },
+    { k:['medication','drug','metformin','ozempic','semaglutide','glp','treatment','pill','medicine','injection','sglt2','wegovy','mounjaro','tirzepatide'],
+      t:[
+        `Metformin is the first-line medication for T2D and also prescribed for prediabetes in some guidelines. It works primarily by reducing hepatic glucose production and improving insulin sensitivity.\n\nGLP-1 receptor agonists (semaglutide/Ozempic, tirzepatide/Mounjaro) mimic the same incretin pathway that TCF7L2 variants impair — people with TCF7L2 risk alleles may respond particularly well. They also drive significant weight loss, addressing a second T2D risk factor simultaneously.\n\nSGLT2 inhibitors (empagliflozin, dapagliflozin) reduce glucose by increasing urinary excretion and have additional cardiovascular and kidney-protective effects.`,
+      ]
+    },
+    { k:['weight','obesity','obese','bmi','overweight','body mass','lose weight','body weight','waist','fat'],
+      t:[
+        `Adipose tissue — especially visceral fat around organs — releases fatty acids and inflammatory cytokines that directly cause insulin resistance. Even 5–7% weight reduction substantially reduces this metabolic burden.\n\nBMI is an imperfect measure — waist circumference is a better proxy for visceral fat and T2D risk. High-risk thresholds: >94cm for men, >80cm for women (European guidelines).\n\nWeight loss through any method — diet, exercise, or GLP-1 agonists — reduces T2D risk. The mechanism matters less than the outcome.`,
+      ]
+    },
+    { k:['sleep','stress','cortisol','mental health','anxiety','rest','insomnia','tired','fatigue','night','hours'],
+      t:[
+        `Sleep and stress are underappreciated T2D risk factors with direct biochemical mechanisms.\n\nSleep deprivation (even one night of 4–5 hours): raises cortisol, growth hormone, and inflammatory markers that acutely impair insulin sensitivity. Chronic poor sleep disrupts circadian regulation of glucose metabolism.\n\nChronic stress: sustained cortisol elevation raises blood glucose directly, promotes visceral fat deposition, and impairs sleep quality — a compounding cycle.\n\nTargeting sleep quality (consistent schedule, dark/cool room, avoiding screens before bed) is one of the most underutilised T2D prevention tools.`,
+      ]
+    },
+    { k:['carb','carbohydrate','keto','ketogenic','low carb','fasting','intermittent','paleo','sugar','fibre','fiber','mediterranean','whole grain','processed food'],
+      t:[
+        `Dietary carbohydrate quality matters more than total quantity for T2D. Fibre content — which slows glucose absorption and feeds beneficial gut bacteria that produce short-chain fatty acids improving insulin sensitivity — is the key variable, not glycaemic index alone.\n\nStrong evidence: Mediterranean diet reduced T2D incidence in multiple RCTs. Low-carbohydrate diets reduce HbA1c in people with existing T2D and may achieve remission in some.\n\nIntermittent fasting reduces insulin exposure periods and may improve insulin sensitivity through autophagy pathways — early evidence is promising but weaker than Mediterranean or low-carb patterns.`,
+      ]
+    },
+    { k:['alcohol','drink','drinking','wine','beer','spirits','units'],
+      t:[
+        `Alcohol has a paradoxical effect on T2D risk. Moderate intake (1–2 drinks/day) is associated with slightly lower T2D risk in observational studies — partly through improved insulin sensitivity at low doses.\n\nHeavy drinking impairs liver glucose regulation, contributes to weight gain, disrupts sleep, and raises triglycerides. Alcohol also masks hypoglycaemia symptoms, which matters if you later take glucose-lowering medication.\n\nFor T2D prevention: light-to-moderate intake is probably neutral; heavy intake is harmful. Sugary mixers are the more direct risk factor than the alcohol itself.`,
+      ]
+    },
+    { k:['south asian','asian','african','black','white','european','ancestry','ethnicity','race','indian','pakistani','caribbean','chinese','hispanic','latino'],
+      t:[
+        `T2D genetic risk varies substantially by ancestry — and how well PRS scores are calibrated.\n\nSouth Asian populations develop T2D at lower BMI thresholds than European populations — the standard overweight threshold (>25 BMI) underestimates risk in South Asians; adjusted thresholds are >23 and >27.5 respectively.\n\nThis PRS is predominantly calibrated on European GWAS data, so absolute percentile estimates may be less precise for non-European ancestries. The directional signal (higher vs lower genetic burden) is still informative, but treat specific percentile numbers as approximate if your ancestry is non-European.`,
+      ]
+    },
+    { k:['age','when','young','old','how old','age of onset','early','child','teenager','adult','midlife'],
+      t:[
+        `T2D risk rises sharply from age 45 onward — but onset is occurring earlier due to rising obesity rates. Type 2 in people under 40 is now common and tends to progress faster with more complications.\n\nGenetic risk accelerates onset timing — high-genetic-risk individuals may develop T2D 5–10 years earlier than low-risk people with similar lifestyles.\n\nFor genetic high-risk individuals, starting HbA1c screening in your 30s rather than waiting until 45 is increasingly recommended.`,
+      ]
+    },
+    { k:['symptom','sign','feel','thirsty','thirst','urinate','urination','tired','fatigue','blurry','wound','heal','numb','tingling','hunger'],
+      t:[
+        `Classic T2D symptoms: excessive thirst, frequent urination, unexplained fatigue, blurred vision, slow wound healing, tingling or numbness in hands/feet, increased hunger despite eating.\n\nCritical point: T2D and prediabetes are often completely asymptomatic for years. By the time symptoms appear, significant beta cell function may already be lost. This is why HbA1c screening matters — you won't know without testing.\n\nIf you have any of these symptoms persistently, see a doctor promptly regardless of your genetic score.`,
+      ]
+    },
+    { k:['reverse','reversal','cure','remission','go away','get rid','undo','recover','fix','heal completely'],
+      t:[
+        `T2D remission — HbA1c below 6.5% without medication for at least 3 months — is achievable and increasingly well-documented.\n\nThe DiRECT trial showed 46% of T2D patients achieved remission through intensive weight management alone (average 10kg loss). Bariatric surgery achieves remission in 40–90% of cases. Low-carbohydrate diets with weight loss show remission in early T2D.\n\nPrediabetes is fully reversible. Even established T2D can be put into remission, especially early in its course. The longer T2D has been present, the less beta cell function remains — which is why early intervention matters most.`,
+      ]
+    },
+    { k:['monitor','cgm','continuous glucose','freestyle','libre','dexcom','glucometer','blood sugar test','check my glucose','track'],
+      t:[
+        `Continuous glucose monitors (CGM) like FreeStyle Libre and Dexcom G7 provide real-time glucose data showing how specific foods, exercise, sleep, and stress affect your blood sugar.\n\nFor people with elevated T2D genetic risk but without diabetes, CGM can be educational — showing your personal glycaemic response to meals, which varies significantly between individuals even for the same food.\n\nFasting glucose tests give a single snapshot; CGM gives a dynamic picture. HbA1c reflects the 3-month average, while CGM shows moment-to-moment variation.`,
+      ]
+    },
+    { k:['prs','polygenic','risk score','how does this work','gwas','genome','calculation','computed','algorithm','how is this calculated','methodology'],
+      t:[
+        `Polygenic Risk Scores work by summing the effect of many genetic variants, each with a small contribution to disease risk.\n\nFor each variant: if you carry the risk allele, a weighted effect size (beta = log odds ratio from GWAS) is added to your score. The final score is compared to a population distribution derived from Hardy-Weinberg equilibrium at published allele frequencies.\n\nThe betas used here come from DIAGRAM Consortium (T2D), CARDIoGRAMplusC4D (CAD), and Fritsche/Klein et al. (AMD) — published meta-analyses involving hundreds of thousands of participants.`,
+      ]
+    },
+    { k:['pregnancy','gestational','pregnant','baby','breastfeed','maternal'],
+      t:[
+        `Gestational diabetes mellitus (GDM) — high blood sugar during pregnancy — is distinct from T2D but shares genetic underpinnings. Women with GDM have ~7× higher lifetime T2D risk compared to those with normal pregnancy glucose.\n\nIf you have elevated T2D genetic risk and are pregnant or planning pregnancy, mention your genetic score to your obstetrician. Glucose tolerance testing (oral glucose tolerance test, OGTT) is standard during pregnancy, and closer monitoring is warranted with elevated baseline risk.\n\nBreastfeeding is associated with lower post-partum T2D risk in women who had GDM — another reason to consider it if feasible.`,
+      ]
+    },
+    { k:['kidney','renal','nephropathy','neuropathy','retinopathy','complication','complication of diabetes','nerve damage','eye damage','foot'],
+      t:[
+        `T2D complications arise from chronically elevated blood sugar damaging small and large blood vessels:\n\n— Nephropathy (kidney damage): leading cause of kidney failure globally; aggressive blood pressure control and blood sugar management prevent it\n— Neuropathy (nerve damage): causes numbness, tingling, pain — especially in feet; prevention is primarily tight glucose control\n— Retinopathy (eye damage): distinct from AMD — affects retinal microvasculature rather than the macula; annual eye exams after diagnosis\n— Cardiovascular disease: the leading cause of death in T2D; why blood pressure, LDL, and glucose control all matter\n\nAll complications are substantially preventable with good metabolic control.`,
+      ]
+    },
   ],
+
   coronary_artery_disease:[
-    {k:['mean','explain','what does','understand','percentile','score','result','tell me'],
-     t:`Your score places you at the 78th percentile for Coronary Artery Disease genetic risk — substantially above average. The variants sit in the 9p21.3 region, identified in over 50 independent genome-wide studies.\n\nThis doesn't mean heart disease is inevitable — but proactive cardiovascular management is genuinely worthwhile. Regular lipid panels and blood pressure checks make real sense for you.`},
-    {k:['do','reduce','prevent','lifestyle','exercise','diet','should i','action'],
-     t:`CAD responds more dramatically to lifestyle intervention than almost any other common disease.\n\n(1) Smoking cessation — reduces CAD risk by up to 50% within 5 years; (2) LDL management through diet and if needed, statin therapy; (3) Mediterranean-pattern diet — 30% fewer events in the PREDIMED trial; (4) Regular aerobic exercise; (5) Blood pressure control.\n\nLarge cohort studies show high-CAD-risk individuals who maintain healthy lifestyles achieve similar event rates to genetically low-risk people.`},
-    {k:['9p21','rs1333049','rs4977574','gene','locus','cdkn'],
-     t:`The 9p21.3 locus sits near CDKN2A and CDKN2B, which control smooth muscle cell proliferation in artery walls — the biological process underlying atherosclerotic plaque formation.\n\nThis is completely separate from LDL cholesterol pathways. You can have perfect cholesterol and still carry elevated 9p21.3 risk. The CC genotype at rs1333049 carries roughly 1.6× higher CAD odds vs. GG — a well-established effect.`},
-    {k:['worry','scared','concerned','bad','serious','dangerous'],
-     t:`High CAD genetic risk is a meaningful signal — I won't minimize it. But here's the full picture.\n\nGenetics explain about 30% of CAD risk. Lifestyle explains at least as much. CAD has some of the best-studied risk-reduction strategies of any disease. The most important immediate step: a lipid panel and blood pressure measurement. That turns this genetic information into something actionable.`},
-    {k:['doctor','medical','physician','see a','tell my','cardiologist'],
-     t:`Definitely worth discussing with your doctor. Ask for a fasting lipid panel and blood pressure check — both give you far more complete risk information alongside your genetic score.\n\nFor high genetic risk individuals, guidelines generally support discussing primary prevention statin therapy if LDL or overall cardiovascular risk is elevated.`},
+    { k:['mean','explain','what does','understand','result','tell me','what is','cad','coronary','heart disease','heart','disease','condition','overview','summary','artery'],
+      t:[
+        d => `Coronary Artery Disease occurs when atherosclerotic plaques — deposits of cholesterol, immune cells, and connective tissue — build up inside the coronary arteries that supply the heart muscle. This narrows the arteries and can trigger heart attacks.\n\nYour genetic score places you at the ${livePct(d)}th percentile for CAD risk. The variants are in the 9p21.3 locus near CDKN2A/CDKN2B — the strongest common genetic signal for CAD in the human genome, replicated across dozens of independent studies.`,
+        d => `CAD is responsible for more deaths than any other single disease globally. Genetic heritability is moderate — about 30% — meaning lifestyle factors are at least as influential as genetics.\n\nAt the ${livePct(d)}th percentile, your profile ${livePct(d) > 70 ? 'makes proactive cardiovascular management genuinely worthwhile' : livePct(d) < 40 ? 'shows below-average plaque-formation predisposition — reassuring baseline' : 'sits near average — standard prevention applies'}. The most useful next step is a lipid panel and blood pressure measurement to complete the picture.`,
+      ]
+    },
+    { k:['percentile','rank','compared','population','average','what does the number','score mean'],
+      t:[
+        d => `The ${livePct(d)}th percentile means ${livePct(d)}% of people carry lower CAD genetic risk than you. What's distinctive about CAD is the extraordinary evidence that lifestyle can override genetic disadvantage.\n\nLarge cohort studies (UK Biobank, Copenhagen City Heart Study) show high-genetic-risk individuals with healthy lifestyles achieve CAD event rates comparable to genetically low-risk people. The genetic score sets the playing field; lifestyle determines the game.`,
+      ]
+    },
+    { k:['do','reduce','prevent','lifestyle','exercise','diet','should i','action','lower','improve','change'],
+      t:[
+        `CAD has the best-studied prevention evidence of any disease:\n\n1. Smoking cessation — up to 50% risk reduction within 5 years; more than any medication\n2. LDL reduction — every 1 mmol/L LDL reduction cuts major cardiac events by ~22%\n3. Mediterranean diet — PREDIMED trial: 30% fewer cardiovascular events vs low-fat diet\n4. Regular aerobic exercise — improves endothelial function, raises HDL, lowers blood pressure and inflammation\n5. Blood pressure control — target <120/80 mmHg\n6. Weight management — each 5kg loss reduces blood pressure ~4–5 mmHg\n\nThese work independently and compound each other.`,
+        `Prioritise by what applies to your situation:\n\n— Smoke? Cessation is the single highest-return action — 50% CAD risk reduction\n— Elevated LDL? Diet first; discuss statins if it persists\n— High blood pressure? DASH diet, sodium reduction, aerobic exercise\n— Sedentary? Even 30 min of brisk walking 5×/week measurably improves cardiovascular outcomes\n— Stressed? Chronic stress raises CRP and cortisol — both promote plaque progression\n\nYou have time. The interventions work best started before symptoms appear.`,
+      ]
+    },
+    { k:['cholesterol','ldl','hdl','statin','lipid','triglyceride','rosuvastatin','atorvastatin','lipoprotein','pcsk9'],
+      t:[
+        `LDL cholesterol drives plaque formation by infiltrating arterial walls and being oxidised by immune cells. Every 1 mmol/L reduction in LDL cuts major cardiac events by ~22%, independent of genetic risk.\n\nStatins are the most studied LDL-lowering drugs. They also reduce arterial inflammation independently of cholesterol.\n\nImportant nuance: the 9p21.3 risk locus acts through smooth muscle biology, not LDL. Elevated genetic risk plus elevated LDL compounds risk multiplicatively — both factors matter. Get a lipid panel to know where you stand.`,
+        `PCSK9 inhibitors (evolocumab, alirocumab) lower LDL far more than statins and are used for very-high-risk patients. Ezetimibe reduces intestinal cholesterol absorption and is often combined with statins.\n\nFor primary prevention: statin therapy is recommended when 10-year ASCVD risk exceeds 7.5% — a calculation your doctor can run incorporating your age, sex, blood pressure, cholesterol, and smoking status.`,
+      ]
+    },
+    { k:['9p21','rs1333049','rs4977574','gene','locus','cdkn','cdkn2a','cdkn2b','biology','mechanism','genetic','variant','snp','anril'],
+      t:[
+        `The 9p21.3 locus sits near CDKN2A and CDKN2B — cyclin-dependent kinase inhibitors that regulate smooth muscle cell proliferation in artery walls. Risk variants reduce their expression, allowing vascular smooth muscle cells to proliferate faster, accelerating atherosclerotic plaque formation.\n\nThis mechanism is entirely separate from LDL pathways — you can have perfect cholesterol and still carry significant 9p21.3 risk. It also explains why anti-inflammatory interventions (Mediterranean diet, aerobic exercise) are specifically relevant here.`,
+        `The 9p21.3 signal is the largest common genetic effect on CAD in the human genome. The region also regulates ANRIL — a long non-coding RNA controlling chromatin remodelling affecting dozens of downstream genes in vascular biology.\n\nThe CC genotype at rs1333049 carries ~1.6× higher CAD odds vs. GG in European populations. The full mechanism is still being characterised — it's more complex than a simple protein-coding variant effect.`,
+      ]
+    },
+    { k:['worry','scared','concerned','bad','serious','dangerous','anxious','nervous','afraid','fear','upset','panic'],
+      t:[
+        `Elevated CAD genetic risk is meaningful information. But it's also one of the most modifiable conditions in medicine.\n\nCAD develops over decades. You're learning your risk at the stage where interventions work best — before any plaque has caused symptoms. The evidence for lifestyle-based risk reduction in high-genetic-risk individuals is among the strongest in all of preventive medicine.`,
+        `A useful framing: high CAD genetic risk means you're playing at a tougher difficulty level, not that the outcome is set. The interventions that reduce CAD risk work regardless of starting genetic position — they just become more important, not less possible.`,
+      ]
+    },
+    { k:['doctor','medical','physician','cardiologist','see a','tell my','gp','visit','test','screen','check','healthcare'],
+      t:[
+        `Key tests to request: fasting lipid panel (LDL, HDL, total cholesterol, triglycerides), blood pressure, fasting glucose (CAD and T2D share risk pathways), and hsCRP (high-sensitivity C-reactive protein — a marker of vascular inflammation).\n\nOptional: a coronary artery calcium (CAC) score via CT scan is increasingly used in intermediate-risk individuals to refine prevention decisions. A CAC of 0 is highly reassuring; elevated CAC confirms active plaque formation.\n\nMention your genetic CAD risk explicitly — it's an evidence-based input that shifts the risk calculation.`,
+        `Ask your doctor to calculate your 10-year ASCVD risk score — it combines age, sex, race, total and HDL cholesterol, blood pressure, diabetes status, and smoking into a single risk number. Guidelines recommend statin therapy when this exceeds 7.5% in conjunction with elevated LDL.\n\nYour genetic score provides information ASCVD doesn't include, so combining both gives a more complete picture.`,
+      ]
+    },
+    { k:['smoke','smoking','cigarette','tobacco','vape','vaping','nicotine','quit smoking','stop smoking'],
+      t:[
+        `Smoking directly damages vascular endothelium, promotes platelet aggregation, raises blood pressure, lowers HDL, and accelerates exactly the smooth muscle proliferation process that 9p21.3 variants predispose to.\n\nCAD risk drops 50% within 5 years of cessation — more than any drug. Within 15 years, risk approaches that of a lifelong non-smoker.\n\nFor someone with elevated CAD genetic risk, cessation is by far the single highest-return intervention available. If you currently smoke, this is where to start before anything else.`,
+      ]
+    },
+    { k:['difficult','hard','can\'t','cannot','struggle','limited','control','afford','access','busy','no time','not easy','realistic','practical'],
+      t:[
+        `Real constraint. Here's what's still in your control by cost/effort:\n\n— Free: smoking cessation (if applicable), walking, stress reduction, sleep improvement, sodium reduction\n— Low cost: Mediterranean diet (legumes, vegetables, olive oil are affordable), generic statins if prescribed (often very cheap)\n— One-time cost: home blood pressure monitor (~£15–30), a lipid panel if not covered\n\nThe single highest-impact free action for CAD is smoking cessation if you smoke. After that: walking and sodium reduction. You don't need a gym or expensive diet overhaul.`,
+      ]
+    },
+    { k:['blood pressure','hypertension','bp','systolic','diastolic','high blood pressure','pressure','mmhg'],
+      t:[
+        `Hypertension strains arterial walls, causing endothelial micro-damage that's the entry point for LDL infiltration and plaque formation — compounding the 9p21.3 pathway.\n\nFirst-line interventions: DASH diet (reduces BP 8–14 mmHg), sodium reduction to <2g/day, regular aerobic exercise (reduces BP 4–9 mmHg), limiting alcohol. Target: <120/80 mmHg for maximum cardiovascular protection.\n\nIf lifestyle measures are insufficient, ACE inhibitors and ARBs have cardiovascular-protective effects beyond blood pressure reduction.`,
+      ]
+    },
+    { k:['heart attack','symptom','chest','pain','angina','breathless','breathlessness','arm pain','jaw','palpitation','dizzy','faint'],
+      t:[
+        `This analysis is for long-term risk assessment — not emergency evaluation. Chest pain, pressure, tightness, shortness of breath, discomfort radiating to the jaw/arm/shoulder, sudden dizziness, or nausea are symptoms requiring immediate medical attention regardless of your genetic score.\n\nIf you have any of these symptoms now, call emergency services. Don't use this tool to assess acute symptoms.\n\nFor monitoring: regular blood pressure checks, annual lipid panels, and awareness of these warning signs are the standard protocol for elevated genetic CAD risk.`,
+      ]
+    },
+    { k:['mediterranean','dash','diet','what to eat','food','fish','olive oil','omega','fruit','vegetable','nuts','processed','red meat','saturated'],
+      t:[
+        `The Mediterranean diet has the strongest RCT evidence for CAD prevention: olive oil, legumes (beans, lentils, chickpeas), oily fish (salmon, mackerel, sardines), nuts, abundant vegetables and fruit, moderate whole grains.\n\nKey mechanisms: olive oil polyphenols reduce LDL oxidation and inflammation; omega-3 fatty acids in oily fish reduce triglycerides and platelet aggregation; legumes provide soluble fibre that lowers LDL.\n\nWhat to reduce: processed meats, ultra-processed foods (high in trans fats, sodium, and refined carbs), full-fat dairy at high quantity.`,
+      ]
+    },
+    { k:['exercise','run','running','swim','swimming','cycling','gym','workout','aerobic','cardio','walk','walking','strength','resistance','yoga','how much'],
+      t:[
+        `For CAD prevention: 150 min/week of moderate intensity (brisk walking, cycling, swimming) or 75 min/week vigorous intensity (running, fast cycling) is the evidence-based minimum.\n\nAerobic exercise improves endothelial function (the arterial lining that prevents plaque formation), raises HDL, lowers blood pressure, reduces triglycerides, and decreases inflammatory markers — all directly relevant to 9p21.3-driven CAD risk.\n\nStrength training adds cardiovascular benefit beyond aerobic exercise — current guidelines recommend 2+ resistance sessions/week. Even yoga shows measurable blood pressure reductions in RCTs.`,
+      ]
+    },
+    { k:['inflammation','crp','c-reactive','inflammatory','immune','cytokine','hs-crp','marker'],
+      t:[
+        `Chronic low-grade inflammation is a core driver of atherosclerosis — and the 9p21.3 pathway is fundamentally an inflammatory/proliferative mechanism in vessel walls.\n\nhsCRP (high-sensitivity C-reactive protein) is a blood marker of systemic inflammation and is predictive of CAD events independently of LDL. The JUPITER trial showed statin therapy reduced events in people with low LDL but elevated hsCRP — suggesting inflammation is a target even when cholesterol appears normal.\n\nAnti-inflammatory approaches most relevant: Mediterranean diet, aerobic exercise, weight management, omega-3 supplementation.`,
+      ]
+    },
+    { k:['stress','mental health','anxiety','depression','cortisol','work stress','burnout','emotional','psychological'],
+      t:[
+        `Psychosocial stress is an under-recognised but well-documented CAD risk factor. Chronic stress raises cortisol, activates the sympathetic nervous system, promotes inflammatory cytokine release, raises blood pressure, and increases platelet aggregation — all accelerating plaque formation.\n\nThe INTERHEART study found psychosocial stress accounted for ~30% of population-attributable CAD risk globally — comparable to smoking.\n\nMind-body interventions (mindfulness, meditation, structured relaxation) show measurable hsCRP and blood pressure reductions in RCTs. This isn't soft advice — it's cardiovascular intervention.`,
+      ]
+    },
+    { k:['age','when','young','old','how old','age of onset','early','premature','decades'],
+      t:[
+        `CAD typically manifests clinically in men in their 50s–60s and women 10–15 years later (oestrogen is cardioprotective before menopause). High genetic risk accelerates this — premature CAD (events before age 55 in men, 65 in women) is more heritable than typical-onset CAD.\n\nThe plaque accumulation process starts in the 20s–30s — decades before clinical events. Prevention starting in your 30s–40s is far more effective than waiting until symptoms appear.\n\nFor high-genetic-risk individuals, baseline lipid panels and blood pressure checks from age 30 are increasingly recommended.`,
+      ]
+    },
+    { k:['alcohol','drink','drinking','wine','beer','spirits','units'],
+      t:[
+        `The relationship between alcohol and CAD is genuinely complex. Light-to-moderate intake has historically been associated with slightly lower CAD risk — possibly through HDL elevation and antiplatelet effects.\n\nHowever, Mendelian randomisation studies (which better avoid confounding) suggest the protective effect is smaller or absent. Heavy drinking clearly raises blood pressure, promotes arrhythmias, and increases cardiovascular risk.\n\nCurrent evidence: light intake is probably neutral; heavy intake is harmful. UK NHS and WHO no longer recommend any level as "safe." For high-CAD-risk individuals, minimising intake is the conservative approach.`,
+      ]
+    },
+    { k:['sleep','sleep apnea','apnoea','snore','snoring','rest','insomnia','cpap','tired','fatigue'],
+      t:[
+        `Sleep disorders are strongly linked to cardiovascular risk. Obstructive sleep apnoea (OSA) causes repeated nocturnal hypoxia, raising blood pressure, increasing sympathetic tone, and promoting inflammatory cytokines — directly accelerating atherosclerosis.\n\nOSA is highly underdiagnosed — typical symptoms are loud snoring, witnessed apnoeas, and excessive daytime sleepiness. If these apply to you, a sleep study is warranted. CPAP treatment reduces cardiovascular events.\n\nEven without OSA, poor sleep duration (<6 or >9 hours/night) independently associates with elevated CAD risk. Sleep is a legitimate cardiovascular intervention.`,
+      ]
+    },
+    { k:['family','parent','mother','father','sibling','inherit','hereditary','children','kids','relative','grandparent','premature','history of heart'],
+      t:[
+        `Family history of premature CAD (first-degree relative with heart attack before age 55 in men, 65 in women) substantially increases risk and is factored into clinical prevention guidelines.\n\nThis analysis captures the genetic component. Family history captures both shared genetics and shared environment — if multiple relatives have had early heart disease, your actual risk may be higher than the genetic score alone suggests.\n\nMention family history explicitly to your doctor — it changes screening recommendations and when to consider statin therapy.`,
+      ]
+    },
+    { k:['aspirin','blood thinner','antiplatelet','warfarin','medication','prevention tablet','drug'],
+      t:[
+        `Low-dose aspirin for primary CAD prevention (before any cardiac event) is now more controversial than historically. Recent large RCTs found that in people without established cardiovascular disease, aspirin's bleeding risk roughly offset its cardiovascular benefit — even in moderate-risk individuals.\n\nCurrent guidelines generally recommend aspirin for primary prevention only in very-high-risk individuals after shared decision-making.\n\nFor secondary prevention (after a heart attack or stent), antiplatelet therapy is firmly recommended — but that's a different scenario. Don't start aspirin without discussing it with your doctor.`,
+      ]
+    },
+    { k:['calcium','cac','calcium score','heart scan','ct','imaging','scan','artery scan','coronary calcium'],
+      t:[
+        `Coronary artery calcium (CAC) scoring is a low-dose CT scan that detects calcified plaque — a direct measure of atherosclerosis already present.\n\nA CAC of 0 is highly reassuring — even in high-genetic-risk individuals, it suggests plaque hasn't yet formed and can defer statin decisions. A CAC >100 or >75th percentile for age/sex confirms active disease and generally triggers more aggressive prevention.\n\nFor people with intermediate ASCVD risk or uncertainty about starting statins, CAC is increasingly recommended as the tiebreaker. Ask your doctor whether it's appropriate.`,
+      ]
+    },
+    { k:['prs','polygenic','risk score','how does this work','gwas','genome','calculation','computed','algorithm','how is this calculated','methodology'],
+      t:[
+        `Polygenic Risk Scores for CAD sum the effect of many variants, each contributing a log odds ratio (beta) to a total score. The variants used here come from CARDIoGRAMplusC4D — a meta-analysis of over 60,000 CAD cases and 130,000 controls.\n\nThe score is compared to a population distribution derived from Hardy-Weinberg equilibrium at published European allele frequencies, then converted to a percentile using a normal distribution approximation.\n\nLarger PRS panels (some include millions of variants) have higher predictive accuracy — this analysis uses the core validated variants. The directional signal (higher vs lower burden) is robust even with a smaller panel.`,
+      ]
+    },
+    { k:['stroke','tia','atrial','fibrillation','afib','arrhythmia','clot','thrombosis','embolism'],
+      t:[
+        `CAD genetic risk is specific to coronary artery disease — it's not a general cardiovascular risk score. Stroke, atrial fibrillation, and venous thrombosis have partially overlapping but distinct genetic architectures.\n\nHowever, the lifestyle interventions that reduce CAD risk (blood pressure control, Mediterranean diet, not smoking, aerobic exercise) also substantially reduce stroke and AFib risk — so the preventive approach is broadly aligned.\n\nIf you have a personal or family history of stroke or arrhythmia, that should be discussed separately with your doctor alongside this CAD genetic result.`,
+      ]
+    },
   ],
+
   age_related_macular_degeneration:[
-    {k:['mean','explain','what does','understand','percentile','score','result','tell me'],
-     t:`Your score places you at the 38th percentile for AMD genetic risk — below average. About 62% of people carry higher genetic predisposition than you.\n\nAMD causes deterioration of the central retina, typically in older age. Your particular variant combination at CFH and ARMS2 doesn't show the high-risk haplotypes associated with aggressive or early-onset AMD. This is genuinely reassuring.`},
-    {k:['do','reduce','prevent','lifestyle','smoking','what should','action'],
-     t:`Even with below-average genetic risk, AMD prevention centers on a few key interventions.\n\n(1) Not smoking is by far the most important — smokers have 2–4× higher AMD risk regardless of genetics; (2) AREDS2 supplements reduce AMD progression risk by 25% in at-risk individuals; (3) UV-blocking sunglasses; (4) Blood pressure control — hypertension affects choroidal blood flow and AMD progression.\n\nStandard measures are likely sufficient given your below-average genetic baseline.`},
-    {k:['cfh','arms2','htra1','gene','rs1061170','rs10490924'],
-     t:`CFH (Complement Factor H) regulates the complement immune system — essentially "inflammation brakes" in the retinal pigment epithelium. Protective CFH variants suppress the chronic low-grade complement activation that damages the macula over decades.\n\nARMS2/HTRA1 affects a different pathway — extracellular matrix regulation around Bruch's membrane. AMD driven by this locus tends to produce a different drusen pattern than CFH-driven AMD.`},
-    {k:['worry','scared','concerned','bad','dangerous'],
-     t:`Your results are genuinely good news. Below-average genetic AMD risk is a reassuring starting point.\n\nAMD has higher genetic heritability than most common diseases (~60–70%), so your genetic profile is particularly informative. Below-average genetics plus standard prevention — not smoking, UV protection, regular eye exams — puts you in a low-probability category.`},
+    { k:['mean','explain','what does','understand','result','tell me','what is','amd','macular','degeneration','disease','condition','overview','summary','retina','eye','macula'],
+      t:[
+        d => `Age-related Macular Degeneration is a disease of the macula — the central 5mm of the retina responsible for sharp, detailed vision. It's the leading cause of vision loss in people over 65 in the developed world.\n\nYour genetic score reflects variants at CFH and ARMS2/HTRA1 — the two strongest AMD genetic loci, explaining more disease heritability than any known variant pair for any other common disease. At the ${livePct(d)}th percentile, ${livePct(d) > 70 ? 'your genetic AMD burden is above average — proactive monitoring is worthwhile' : livePct(d) < 40 ? 'your genetic burden is below average — genuinely reassuring given AMD\'s high heritability' : 'you sit near the population average'}.`,
+        d => `AMD damages the macula through accumulation of drusen (protein/lipid deposits under the retina) and retinal pigment epithelium dysfunction, eventually causing photoreceptor loss.\n\nAMD has ~60–70% genetic heritability — higher than most common diseases. This makes genetic scores particularly informative here. At the ${livePct(d)}th percentile, your CFH and ARMS2 variant combination ${livePct(d) > 70 ? 'places you in the at-risk group where monitoring frequency and prevention matter most' : 'places you below the high-risk threshold where aggressive monitoring begins'}.`,
+      ]
+    },
+    { k:['percentile','rank','compared','population','average','what does the number','score mean'],
+      t:[
+        d => `The ${livePct(d)}th percentile means ${livePct(d)}% of people carry less AMD genetic risk than you. AMD's 60–70% genetic heritability makes this score particularly meaningful — genetics is a stronger predictor here than for most other common diseases.\n\nThe practical implication is monitoring frequency, whether AREDS2 supplements are warranted, and how aggressively to pursue smoking cessation — the biggest modifiable risk factor.`,
+      ]
+    },
+    { k:['do','reduce','prevent','lifestyle','smoking','what should','action','protect','lower risk'],
+      t:[
+        `AMD prevention, ranked by evidence:\n\n1. Not smoking — 2–4× higher AMD risk in smokers; cessation brings risk toward non-smoker levels\n2. AREDS2 supplements — 25% reduction in progression for intermediate AMD (ophthalmologist evaluation required)\n3. Blood pressure control — hypertension impairs choroidal blood flow beneath the macula\n4. UV-blocking sunglasses — cumulative photochemical protection\n5. Lutein and zeaxanthin-rich diet — leafy greens, eggs\n6. Regular dilated eye exams — AMD is asymptomatic until significant damage; early detection allows intervention`,
+        `The most evidence-weighted AMD prevention hierarchy:\n\n— Smoking cessation: the single largest modifiable risk factor, 2–4× risk elevation — dominates all other lifestyle factors\n— Dietary lutein/zeaxanthin (kale, spinach, eggs): these carotenoids are selectively concentrated in the macula and protect photoreceptors from oxidative damage\n— Blood pressure and glucose control: vascular factors affect choroidal circulation\n— AREDS2 if ophthalmologist confirms intermediate AMD\n— UV protection, limited blue light exposure\n\nExercise and maintaining healthy weight also show AMD risk reduction in large cohort studies — the mechanism is likely through systemic inflammation and vascular health.`,
+      ]
+    },
+    { k:['cfh','arms2','htra1','gene','rs1061170','rs10490924','biology','mechanism','genetic','complement','factor h','variant','snp'],
+      t:[
+        `CFH encodes Complement Factor H — a regulator of the alternative complement pathway. In the retinal pigment epithelium, CFH normally acts as an "off switch" for complement activation. Risk variants impair this regulation, allowing chronic low-grade complement-mediated inflammation to damage the macula over decades.\n\nARMS2/HTRA1 operates through a different mechanism — extracellular matrix remodelling and cellular stress response around Bruch's membrane beneath the retina. AMD driven by ARMS2 variants tends to have different drusen patterns and clinical progression than CFH-driven AMD.`,
+        `The complement system is part of innate immunity that normally tags pathogens for destruction. In the retina, inappropriate complement activation triggers chronic inflammation damaging the retinal pigment epithelium (RPE) cells that maintain photoreceptors.\n\nThis is why anti-inflammatory lifestyle interventions — smoking cessation, dietary antioxidants, blood pressure control — are biologically relevant for CFH-driven AMD. Complement inhibitors are in late-stage clinical trials targeting this exact pathway.`,
+      ]
+    },
+    { k:['worry','scared','concerned','bad','serious','anxious','nervous','afraid','fear','upset','losing sight','go blind','lose vision'],
+      t:[
+        d => `${livePct(d) < 40 ? 'Your below-average AMD risk is genuinely good news — AMD\'s high heritability makes this a particularly informative result.' : 'High AMD genetic risk is real information — but AMD is a slowly progressing disease with meaningful intervention opportunities.'}\n\nAMD rarely causes complete blindness. Peripheral vision is preserved; what's lost is central, detailed vision. Most people with AMD retain enough vision for daily activities with appropriate support and treatment.\n\nEarly detection matters most — regular eye exams catch drusen before symptoms appear, when monitoring and lifestyle changes are most effective.`,
+        `AMD progresses slowly in the majority of cases. The higher-risk concern is conversion to wet AMD, which can progress faster — but this is now effectively treated with anti-VEGF injections if caught early.\n\nKnowing your genetic risk in advance gives you exactly the lead time to put monitoring in place. Most vision loss from AMD occurs in people who didn't know they had it until late stages.`,
+      ]
+    },
+    { k:['doctor','ophthalmologist','eye doctor','see a','optometrist','eye exam','monitor','retina specialist','check my eyes'],
+      t:[
+        `An ophthalmologist can perform a dilated fundus exam or OCT (optical coherence tomography) imaging to look for drusen — the earliest sign of AMD, usually present years before any vision change.\n\nMention your genetic AMD risk at your appointment. It informs monitoring frequency — annual exams are standard for elevated genetic risk, every 2 years for lower risk. If drusen are found, they'll discuss AREDS2 supplementation.\n\nOptometrists can do basic screening but OCT and drusen grading require an ophthalmologist or retinal specialist.`,
+        `Key things to ask at your eye appointment:\n— "Can you check for drusen or early AMD changes?"\n— "How often should I be monitored given my genetic AMD risk?"\n— "Am I in the target group for AREDS2 supplements?"\n— "What symptoms should I come back immediately for?"\n\nAlso ask about an Amsler grid — a simple home monitoring tool that detects distortions in central vision that can signal AMD progression between appointments.`,
+      ]
+    },
+    { k:['difficult','hard','can\'t','cannot','struggle','limited','control','afford','access','busy','no time','not easy','realistic','practical'],
+      t:[
+        `For AMD, the highest-impact actions are also the lowest-cost ones.\n\nNot smoking — or quitting — is free and reduces AMD risk 2–4×, more than any supplement. That's the starting point.\n\nCheap UV-blocking sunglasses (any lens rated UV400 works) provide cumulative protection. Leafy greens (spinach, kale) are affordable and provide lutein/zeaxanthin. Blood pressure management through diet and walking is free.\n\nAREDS2 supplements are only for intermediate AMD diagnosed by an ophthalmologist — not a general prevention purchase. Focus on smoking and regular eye exams first.`,
+      ]
+    },
+    { k:['areds','supplement','vitamin','zinc','lutein','zeaxanthin','pill','antioxidant','vitamins for eyes','eye vitamins'],
+      t:[
+        `AREDS2 is a specific formula from the landmark Age-Related Eye Disease Study 2: vitamin C 500mg, vitamin E 400IU, zinc 80mg, copper 2mg, lutein 10mg, zeaxanthin 2mg. It reduced progression from intermediate to advanced AMD by ~25%.\n\nCritical context: AREDS2 is studied for intermediate AMD or advanced AMD in one eye. It's not a general prevention supplement for people without AMD or with only early AMD. Have your ophthalmologist examine your retina first.`,
+        `Generic AREDS2 formulations are widely available and cost far less than branded versions. Look for the exact formula — some "eye vitamin" products don't match the studied doses.\n\nNote: the original AREDS formula contained beta-carotene, which increased lung cancer risk in smokers. AREDS2 replaced beta-carotene with lutein/zeaxanthin — safer and at least as effective. If you smoke, specifically ensure any supplement uses the AREDS2 (not original AREDS) formulation.`,
+      ]
+    },
+    { k:['vision','sight','see','central','reading','distortion','wavy','blur','blurry','straight lines','colour','dark spot','scotoma','dim'],
+      t:[
+        `AMD affects central vision — the sharp, detailed vision used for reading, recognising faces, and driving. Peripheral vision is usually preserved.\n\nEarly AMD: often no symptoms at all. Drusen are present but vision is normal — detected only by eye exam.\n\nIntermediate AMD: mild blurring, occasional distortion, difficulty in low light.\n\nAdvanced AMD: significant central blurring or a central blind spot (scotoma).\n\nCritical warning sign: straight lines appearing wavy or bent (metamorphopsia) can signal conversion to wet AMD — see an ophthalmologist urgently, not at the next routine appointment.`,
+      ]
+    },
+    { k:['wet','dry','type','form','treatment','injection','anti-vegf','geographic atrophy','neovascular','laser'],
+      t:[
+        `Dry AMD (90% of cases): slow photoreceptor loss through drusen accumulation and RPE atrophy. No drug currently reverses dry AMD. However, treatments for geographic atrophy (late dry AMD) have recently been approved (avacincaptad pegol, pegcetacoplan) — the first dry AMD treatments ever available.\n\nWet AMD (10%): abnormal blood vessel growth (choroidal neovascularisation) beneath the retina. Can progress rapidly — weeks to months. Treated with anti-VEGF injections that halt and sometimes partially reverse vision loss. Early detection is critical.`,
+      ]
+    },
+    { k:['amsler','grid','home monitoring','self test','check at home','monitor at home','home test'],
+      t:[
+        `The Amsler grid is a simple home monitoring tool — a grid of horizontal and vertical lines with a central dot. You cover one eye, focus on the dot, and look for distortions (wavy lines, missing areas, blurring near the centre).\n\nFor people with intermediate AMD, daily Amsler grid testing is recommended — it can detect wet AMD conversion weeks before standard follow-up appointments. Free printable versions are available from AMD charities (RNIB, Macular Society).\n\nIf lines appear wavy or distorted, contact your ophthalmologist urgently — don't wait for a routine appointment. Early treatment of wet AMD significantly improves outcomes.`,
+      ]
+    },
+    { k:['lutein','zeaxanthin','diet for eyes','what to eat','spinach','kale','eggs','leafy green','eye food','antioxidant food'],
+      t:[
+        `Lutein and zeaxanthin are carotenoids concentrated in the macula that act as natural "sunglasses" — absorbing harmful blue light and quenching free radicals. The body can't synthesise them; dietary intake is the only source.\n\nBest food sources: kale (highest lutein content), spinach, Swiss chard, broccoli, egg yolk (highly bioavailable form), peas, corn.\n\nThe AREDS2 trial supplemented at 10mg lutein + 2mg zeaxanthin daily — achievable through diet with ~100g of spinach or kale per day. Cooking slightly improves bioavailability. Dietary fat consumed alongside improves absorption.`,
+      ]
+    },
+    { k:['blue light','screen','phone','computer','monitor','display','glasses','screen time','led'],
+      t:[
+        `Blue light from screens is a concern that has been somewhat overstated relative to the evidence. Retinal blue light exposure from screens is much lower than from sunlight — UV exposure outdoors is the primary photochemical AMD concern.\n\nThat said: cumulative blue light exposure contributes to photoreceptor oxidative stress, and lutein/zeaxanthin in the macula partially filter it. Outdoor UV exposure without sunglasses is a more significant AMD risk factor than indoor screen use.`,
+      ]
+    },
+    { k:['age','when','young','old','how old','age of onset','early onset','decades','develop when','start','begin'],
+      t:[
+        `AMD is predominantly a disease of older age — most clinically significant cases appear after age 60, with incidence rising sharply in the 70s–80s. Early AMD (asymptomatic drusen) often begins in the 40s–50s.\n\nHigh genetic risk can shift onset earlier. The CFH and ARMS2 variants affect the same biological processes throughout life — those with high-risk haplotypes tend to accumulate drusen faster.\n\nStarting eye screening before the typical "recommended from 65" threshold makes sense for people with elevated genetic AMD risk.`,
+      ]
+    },
+    { k:['family','parent','mother','father','sibling','inherit','hereditary','children','kids','relative','grandparent','family history'],
+      t:[
+        `AMD has 60–70% heritability — one of the highest among common diseases. First-degree relatives of AMD patients have a 3–4× elevated risk.\n\nThis analysis captures the two strongest genetic contributors. Family history corroborates and amplifies the genetic signal. If your parent or sibling has AMD, your actual risk is likely higher than the genetic score alone indicates.\n\nMention family history at your ophthalmology appointment — it should influence monitoring frequency and when to start protective measures.`,
+      ]
+    },
+    { k:['drive','driving','licence','license','work','daily life','independence','impact','read','watch tv','face','independence'],
+      t:[
+        `AMD primarily affects central vision — sharp detail, reading, face recognition, driving. Peripheral vision is largely preserved, meaning AMD rarely causes complete blindness.\n\nDriving: legal visual acuity requirements (typically 6/12 or 20/40 in the better eye) mean many people with early-intermediate AMD can continue driving. Late AMD affecting the better eye may require cessation — an ophthalmologist or DVLA/DMV assessment determines fitness.\n\nFor significant vision loss: magnifiers, screen readers, large-print settings, and support from organisations like RNIB (UK) or AFB (US) can maintain independence substantially.`,
+      ]
+    },
+    { k:['anti-vegf','injection','ranibizumab','aflibercept','faricimab','brolucizumab','bevacizumab','lucentis','eylea','vabysmo','treatment for wet'],
+      t:[
+        `Anti-VEGF injections are the standard treatment for wet AMD. They block the VEGF protein that drives abnormal blood vessel growth beneath the retina.\n\nApproved agents: aflibercept (Eylea), ranibizumab (Lucentis), faricimab (Vabysmo — targets both VEGF and Ang-2), bevacizumab (Avastin — off-label but widely used).\n\nInjections are given into the vitreous under local anaesthesia — typically monthly for 3 months, then as needed based on OCT monitoring. Most patients achieve stable vision; many see improvement. Treatment is ongoing — stopping typically leads to relapse.`,
+      ]
+    },
+    { k:['cataract','glaucoma','floaters','other eye','other conditions','macular hole','diabetic retinopathy'],
+      t:[
+        `AMD is a macular disease — specific to the central retina. It's distinct from cataracts (lens clouding, surgically correctable), glaucoma (optic nerve damage from elevated eye pressure), diabetic retinopathy (blood vessel damage from diabetes), and retinal detachment.\n\nCataract surgery in AMD patients can temporarily improve vision but doesn't slow AMD progression. Glaucoma and AMD can coexist — both are more common with age — so comprehensive eye exams are worthwhile regardless.\n\nFor elevated AMD genetic risk, an annual dilated exam with OCT imaging (not just a basic optometrist check) is recommended to specifically assess the macula.`,
+      ]
+    },
+    { k:['alcohol','drink','drinking','wine','beer'],
+      t:[
+        `Alcohol's relationship to AMD is less studied than to CAD or T2D. Some observational studies find heavy drinking mildly associated with AMD progression — likely through oxidative stress, vascular changes, and impaired antioxidant status.\n\nLight-to-moderate intake is probably neutral for AMD. Smoking, UV exposure, and genetic factors are more significant AMD risk factors than alcohol for most people.`,
+      ]
+    },
+    { k:['cure','reverse','reversal','treat','recover','fix','go away','remission','heal','get better'],
+      t:[
+        `Dry AMD currently has no reversal treatment — photoreceptor loss is permanent. Two new drugs (avacincaptad pegol, pegcetacoplan) approved in 2023 slow geographic atrophy progression by ~15–20%, but don't reverse existing damage.\n\nWet AMD treatment (anti-VEGF) can stabilise and often partially recover vision if started promptly — but requires ongoing treatment.\n\nThis is why prevention and early detection are emphasised so heavily. The window to prevent AMD is long; the window to reverse it is narrow. Monitoring lets you catch the critical transitions when intervention is most effective.`,
+      ]
+    },
+    { k:['prs','polygenic','risk score','how does this work','gwas','genome','calculation','computed','algorithm','how is this calculated','methodology'],
+      t:[
+        `The AMD polygenic risk score sums the effect of variants at CFH (rs1061170, log OR ~0.854) and ARMS2/HTRA1 (rs10490924, log OR ~0.693) — together explaining a larger share of AMD heritability than equivalent variant pairs in almost any other complex disease.\n\nThe score is compared to a population distribution derived from published European allele frequencies, then converted to a percentile using the normal CDF approximation.\n\nLarger AMD PRS panels (dozens of variants) exist and have higher predictive accuracy. This analysis focuses on the two strongest signals — the directional signal is robust even with this reduced panel.`,
+      ]
+    },
+    { k:['sun','sunlight','uv','ultraviolet','sunglasses','outdoor','light','photodamage'],
+      t:[
+        `UV radiation causes cumulative photochemical damage to the retinal pigment epithelium — the layer that maintains photoreceptors. This is a direct AMD risk factor independent of genetics.\n\nProtection: sunglasses with UV400 protection (blocks 99–100% of UV-A and UV-B) worn outdoors, especially in high-UV environments (midday, high altitude, near water or snow). Wide-brimmed hats add additional protection.\n\nThe dose-response is cumulative over a lifetime — protection started early has more benefit than starting late, but it's never too late to add sun protection as a habit.`,
+      ]
+    },
   ],
 };
 
-const DEFAULT_MSG = {
-  type2_diabetes: `I can explain your Type 2 Diabetes results, what the variants mean, what prevention looks like, or how PRS works. What would you like to know?`,
-  coronary_artery_disease: `I can explain your Heart Disease results, what the 9p21.3 locus means, the most effective preventive steps, or what to discuss with your doctor. What would you like to know?`,
-  age_related_macular_degeneration: `I can explain your Macular Degeneration results, how CFH and ARMS2 work, what eye care steps make sense, or how AMD genetics work. What would you like to know?`,
+const DEFAULT_MSGS = {
+  type2_diabetes: [
+    `Happy to go deeper on any aspect — the biology behind specific variants, what the percentile means in practice, which lifestyle changes have the strongest evidence, or when to get tested. What's most relevant to you?`,
+    `A few things I can help with: what your specific gene variants do biologically, how T2D risk interacts with sleep or stress, the difference between prediabetes and diabetes, or what to ask your doctor. What's on your mind?`,
+    `I can walk through the specific T2D variants in your analysis, explain how PRS calculations work, discuss the evidence for different lifestyle interventions, or talk through what blood tests would give you the most useful additional information.`,
+  ],
+  coronary_artery_disease: [
+    `Happy to go deeper — the specific biology of the 9p21.3 locus, what a lipid panel would add to this picture, which lifestyle interventions move the needle most, or what to ask your doctor. What's most relevant?`,
+    `A few directions: explaining how 9p21.3 affects arterial biology, comparing statins vs lifestyle for primary prevention, translating your percentile into a practical monitoring plan, or discussing what symptoms warrant urgent attention. What would help?`,
+    `I can explain the specific pathways involved in your CAD variants, discuss how blood pressure and cholesterol interact with genetic risk, walk through the Mediterranean diet evidence, or help you prepare for a conversation with your doctor.`,
+  ],
+  age_related_macular_degeneration: [
+    `Happy to go deeper — how CFH complement biology works, what early AMD looks like on an eye exam, the AREDS2 trial evidence, or what monitoring schedule makes sense given your risk level. What's most relevant?`,
+    `A few areas I can cover: the specific genes involved and how they cause retinal damage, the difference between wet and dry AMD, what to look for as early warning signs, or the evidence behind different preventive measures.`,
+    `I can explain the complement pathway and why it matters for AMD, walk through the AREDS2 supplement evidence in detail, discuss how AMD risk interacts with blood pressure and smoking, or help you prepare questions for your ophthalmologist.`,
+  ],
 };
 
 const QR = {
-  type2_diabetes: ['What does this mean?','What should I do?','How accurate is this?','Explain TCF7L2'],
-  coronary_artery_disease: ['What does this mean?','What can I do?','Explain 9p21.3','Should I see a doctor?'],
-  age_related_macular_degeneration: ['What does this mean?','How to prevent it?','What is CFH?','How worried should I be?'],
+  type2_diabetes: ['What does this mean?','What should I do?','Explain the genes','Should I get tested?'],
+  coronary_artery_disease: ['What does this mean?','How do I reduce risk?','Explain 9p21.3','Should I see a doctor?'],
+  age_related_macular_degeneration: ['What does this mean?','How to prevent it?','What is CFH?','What symptoms to watch for?'],
 };
 
 function updateChat(r) {
@@ -794,9 +1481,12 @@ function setQuickReplies(disease) {
 }
 
 function initChat(r) {
+  const disease = r?.disease || 'type2_diabetes';
+  chatUsed[disease] = new Set();
+  chatVariants[disease] = {};
   const tier = r?.riskInterpretation?.tier || 'moderate';
   const pct  = r?.riskInterpretation?.percentileApprox || 50;
-  const lbl  = DISEASE_LABELS[r?.disease] || 'this condition';
+  const lbl  = DISEASE_LABELS[disease] || 'this condition';
   const greeting = `I've analyzed your DNA for <strong>${lbl}</strong>. You show <strong>${tier} risk</strong> at the ${pct}th percentile. What would you like to know?`;
   document.getElementById('chat-messages').innerHTML = '';
   addMsg('ai', greeting);
@@ -841,14 +1531,60 @@ function sendChatMsg(text) {
   }, 700 + Math.random() * 600);
 }
 
+// Meta/conversational phrases that need a human-feeling response, not a topic match
+const META_RESPONSES = [
+  { k:['are you seeing','do you get','do you understand','get it','my point','you hear','are you following','follow me','listening','understand me','are you with'],
+    t:[`Yes — you're saying the standard advice doesn't work for your situation, and you want something that actually applies. That's the right question to push on.\n\nTell me more about what's making it hard — is it cost, time, your food environment, something else? I'll try to give you responses that match your actual constraints rather than textbook recommendations.`]
+  },
+  { k:['thanks','thank you','that helps','helpful','useful','got it','makes sense','appreciate'],
+    t:[`Glad that's useful. Feel free to ask anything else — the more specific your situation, the more targeted I can be.`]
+  },
+  { k:['you\'re wrong','that\'s wrong','that\'s not right','incorrect','disagree','not true','not accurate'],
+    t:[`Fair push-back — I'm working from published GWAS data and population-level evidence, which doesn't always translate perfectly to individual situations. What specifically seems off? I want to give you accurate information.`]
+  },
+  { k:['hello','hi ','hey ','good morning','good afternoon'],
+    t:[`Hi. I'm here to explain your genetic results in plain language. Ask me about what any result means, what you can do about it, or how the underlying biology works.`]
+  },
+];
+
 function getResponse(text) {
   const disease = state.activeDisease || 'type2_diabetes';
   const pool = RESPONSES[disease] || RESPONSES.type2_diabetes;
   const lower = text.toLowerCase();
-  for (const r of pool) {
-    if (r.k.some(k => lower.includes(k))) return r.t;
+  if (!chatUsed[disease]) chatUsed[disease] = new Set();
+
+  // Check meta/conversational phrases first — disease-agnostic
+  for (const m of META_RESPONSES) {
+    if (m.k.some(k => lower.includes(k))) {
+      const variants = Array.isArray(m.t) ? m.t : [m.t];
+      return variants[0];
+    }
   }
-  return DEFAULT_MSG[disease] || DEFAULT_MSG.type2_diabetes;
+
+  // Collect all matching entry indices
+  const matches = pool.reduce((acc, r, i) => {
+    if (r.k.some(k => lower.includes(k))) acc.push(i);
+    return acc;
+  }, []);
+
+  // Prefer unused matches; fall back to used ones if exhausted
+  const unused = matches.filter(i => !chatUsed[disease].has(i));
+  const idx = unused.length ? unused[0] : (matches.length ? matches[0] : -1);
+
+  if (idx >= 0) {
+    chatUsed[disease].add(idx);
+    const entry = pool[idx];
+    const variants = Array.isArray(entry.t) ? entry.t : [entry.t];
+    if (!chatVariants[disease]) chatVariants[disease] = {};
+    const lastV = chatVariants[disease][idx] ?? -1;
+    const nextV = (lastV + 1) % variants.length;
+    chatVariants[disease][idx] = nextV;
+    const picked = variants[nextV];
+    return typeof picked === 'function' ? picked(disease) : picked;
+  }
+
+  // No keyword match — unrecognised input
+  return `Sorry, I couldn't quite get your query — try again?`;
 }
 </script>
 </body>

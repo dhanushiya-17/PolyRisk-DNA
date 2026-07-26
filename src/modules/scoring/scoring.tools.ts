@@ -264,6 +264,18 @@ export class ScoringTools {
         'beta'
       ) {
 
+        if (
+          !Number.isFinite(
+            decision.effectSize
+          )
+        ) {
+          ctx.logger.warn(
+            'Skipping variant with invalid beta',
+            { rsid: decision.rsid, effectSize: decision.effectSize }
+          );
+          continue;
+        }
+
         weight =
           decision.effectSize;
 
@@ -595,8 +607,7 @@ export class ScoringTools {
         confidence:
           confidenceLevel,
 
-        averageEvidence:
-          averageEvidence,
+        averageEvidence,
       }
     );
 

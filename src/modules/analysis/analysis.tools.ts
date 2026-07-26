@@ -130,7 +130,7 @@ export class AnalysisTools {
       totalScore += contribution;
       contributions.push({
         rsid: d.rsid, riskAllele: d.riskAllele ?? '',
-        genotypeAlleleCount: 1, effectSize, effectType, contribution,
+        genotypeAlleleCount: 1, weight: effectSize, effectType, contribution,
         studyAccession: d.studyAccession ?? '', pubmedId: d.pubmedId ?? '',
       });
     }

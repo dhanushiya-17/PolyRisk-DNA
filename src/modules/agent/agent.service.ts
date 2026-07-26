@@ -293,7 +293,7 @@ export class AgentService {
         rsid: d.rsid, riskAllele: d.riskAllele ?? '',
         genotype: genotype || 'unknown',
         genotypeAlleleCount: riskAlleleCount,
-        effectSize, effectType, contribution,
+        weight: effectSize, effectType, contribution,
         studyAccession: d.studyAccession ?? '',
         pubmedId: d.pubmedId ?? '',
       });

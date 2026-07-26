@@ -65,5 +65,7 @@ export function parseAncestryFile(fileContent: string, disease: string): ParsedV
 
 export function countRiskAlleles(genotype: string, riskAllele: string): number {
   if (!genotype || !riskAllele) return 1;
-  return genotype.toUpperCase().split('').filter(a => a === riskAllele.toUpperCase()).length;
+  const upper = genotype.toUpperCase();
+  if (upper === 'NN' || upper === '--' || upper === '00') return 1; // assume heterozygous when genotype unknown
+  return upper.split('').filter(a => a === riskAllele.toUpperCase()).length;
 }

@@ -56,7 +56,7 @@ describe('RiskInterpreterService', () => {
             rsid: 'rs7903146',
             riskAllele: 'T',
             genotypeAlleleCount: 2,
-            effectSize: 0.2852,
+            weight: 0.2852,
             effectType: 'OR_log' as const,
             contribution: 0.5704,
             studyAccession: 'GCST000028',

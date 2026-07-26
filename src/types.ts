@@ -205,7 +205,7 @@ export interface PRSContribution {
   /*
    * Whether this particular SNP used an assumed dosage.
    *
-   * This allows P3/UI to clearly distinguish measured
+   * This allows the UI to clearly distinguish measured
    * genotype contributions from fallback assumptions.
    */
   genotypeAssumed?: boolean;
